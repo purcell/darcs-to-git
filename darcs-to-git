@@ -1,0 +1,131 @@
+#!/usr/bin/env ruby
+
+# TODO: import parallel darcs repos as git branches, identifying branch points
+
+
+require 'ostruct'
+require 'rexml/document'
+
+ENV['TZ'] = 'GMT0'
+
+SRCREPO = ARGV[0] || raise("usage: darcs-to-git DARCSREPO")
+
+def run(*args)
+  puts "Running: #{args.inspect}"
+  system(*args) || raise("Failed to run: #{args.inspect}")
+end
+
+def output_of(*args)
+  puts "Running: #{args.inspect}"
+  output = IO.popen(args.map {|a| "'#{a}'"}.join(' '), 'r') { |p| p.read }
+  if $?.exitstatus == 0
+    return output
+  else
+    raise "Failed to run: #{args.inspect}"
+  end
+end
+
+
+class DarcsPatch
+  attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name
+
+  def initialize(source_repo, patch_xml)
+    self.source_repo = source_repo
+    self.author = patch_xml.attribute('author').to_s
+    self.date = darcs_date_to_git_date(patch_xml.attribute('date').to_s)
+    self.inverted = (patch_xml.attribute('inverted').to_s == 'True')
+    self.identifier = patch_xml.attribute('hash').to_s
+    self.name = REXML::Text.unnormalize(patch_xml.get_elements('name').first.get_text.to_s)
+    if (self.is_tag = (self.name =~ /^TAG (.*)/))
+      self.git_tag_name = $1.gsub(/[\s:]+/, '_')
+    end
+  end
+
+  def <=>(other)
+    self.identifier <=> other.identifier
+  end
+
+  def git_commit_message
+    (inverted ? "UNDO: #{name}" : name) + "\n\n\ndarcs-hash:#{identifier}"
+  end
+
+  def self.read_from_repo(repo)
+    REXML::Document.new(output_of("darcs", "changes", "--reverse", "--repodir=#{repo}", "--xml")).get_elements('changelog/patch').map do |p|
+      DarcsPatch.new(repo, p)
+    end
+  end
+
+  # Return committish for corresponding patch in current git repo, or false/nil
+  def id_in_git_repo
+    @git_commit ||= find_in_git_repo
+  end
+
+  def pull_and_apply
+    puts "\n" + ("=" * 80)
+    puts "PATCH: #{patch.name} (#{patch.date})"
+    puts "=" * 80
+
+    if id_in_git_repo
+      puts "Already imported to git as #{patch.id_in_git_repo}"
+      next
+    end
+
+    pull
+    system("git-status")
+    apply_to_git_repo
+  end
+
+  private
+
+  def pull
+    run("darcs", "pull", "--all", "--quiet", "--match", "hash #{identifier}", "--set-scripts-executable", source_repo)
+    unless `darcs whatsnew -sl` =~ /^No changes!$/
+      puts "Darcs reports dirty directory: assuming conflict that is fixed by a later patch... reverting"
+      run("darcs revert --all")
+    end
+  end
+
+  def apply_to_git_repo
+    ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = author
+    ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
+    if is_tag
+      run("git-tag", "-a", "-m", git_commit_message, git_tag_name)
+    else
+      if (new_files = git_new_files).any?
+        run(*(["git-add"] + new_files))
+      end
+      if git_changed_files.any?
+        run("git-commit", "-a", "-m", git_commit_message)
+      end
+    end
+  end
+
+  def find_in_git_repo
+    return nil unless File.exists?(".git/refs/heads/master")  # empty repo
+    if is_tag then
+      output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
+        output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
+    else
+      output_of("git-log", "-n1", "--grep=darcs-hash:#{identifier}").scan(/^commit ([a-z0-9]+$)/).flatten.first
+    end
+  end
+
+  def darcs_date_to_git_date(d)
+    d.gsub(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)\d+$/, '\1-\2-\3 \4:\5')
+  end
+
+  def git_ls_files(*args) output_of(*["git-ls-files"] + args + ["-X", ".git/info/exclude"]).split(/\r?\n/) end
+  def git_new_files() git_ls_files("-o") end
+  def git_changed_files() git_ls_files("-m", "-d", "-o", "-s") end
+end
+
+
+unless File.directory?("_darcs")
+  run("darcs", "init")
+  run("git-init")
+  File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
+  File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
+end
+
+
+DarcsPatch.read_from_repo(SRCREPO).each { |patch| patch.pull_and_apply }
