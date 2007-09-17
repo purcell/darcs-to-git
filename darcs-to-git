@@ -62,12 +62,12 @@ class DarcsPatch
 
   def pull_and_apply
     puts "\n" + ("=" * 80)
-    puts "PATCH: #{patch.name} (#{patch.date})"
+    puts "PATCH: #{name} (#{date})"
     puts "=" * 80
 
     if id_in_git_repo
-      puts "Already imported to git as #{patch.id_in_git_repo}"
-      next
+      puts "Already imported to git as #{id_in_git_repo}"
+      return
     end
 
     pull
