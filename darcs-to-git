@@ -128,4 +128,12 @@ unless File.directory?("_darcs")
 end
 
 
-DarcsPatch.read_from_repo(SRCREPO).each { |patch| patch.pull_and_apply }
+patches = DarcsPatch.read_from_repo(SRCREPO)
+
+patches_to_pull = []
+while patch = patches.pop
+  break if patch.id_in_git_repo
+  patches_to_pull.unshift(patch)
+end
+
+patches_to_pull.each { |patch| patch.pull_and_apply }
