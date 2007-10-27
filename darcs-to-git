@@ -114,7 +114,7 @@ class DarcsPatch
       if (new_files = git_new_files).any?
         run(*(["git-add"] + new_files))
       end
-      if git_changed_files.any?
+      if git_changed_files.any? || new_files.any?
         run("git-commit", "-a", "-m", git_commit_message)
       end
     end
@@ -134,9 +134,13 @@ class DarcsPatch
     d.gsub(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)\d+$/, '\1-\2-\3 \4:\5')
   end
 
-  def git_ls_files(*args) output_of(*["git-ls-files"] + args + ["-X", ".git/info/exclude"]).split(/\r?\n/) end
-  def git_new_files() git_ls_files("-o") end
-  def git_changed_files() git_ls_files("-m", "-d", "-o", "-s") end
+  def git_ls_files(wanted)
+    output_of(*["git-ls-files", "-t", "-o", "-m", "-d", "-X", ".git/info/exclude"]).scan(/^(.?) (.*?)$/m).map do |code, name|
+      name if wanted.include?(code)
+    end.compact
+  end
+  def git_new_files() git_ls_files(["?"]) end
+  def git_changed_files() git_ls_files(%w(? R C)) end
 end
 
 
