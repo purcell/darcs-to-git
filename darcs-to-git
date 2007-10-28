@@ -31,7 +31,7 @@ end
 
 
 class DarcsPatch
-  attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name
+  attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name, :comment
   attr_reader :author_name, :author_email
 
   def initialize(source_repo, patch_xml)
@@ -41,6 +41,7 @@ class DarcsPatch
     self.inverted = (patch_xml.attribute('inverted').to_s == 'True')
     self.identifier = patch_xml.attribute('hash').to_s
     self.name = patch_xml.get_elements('name').first.get_text.value
+    self.comment = patch_xml.get_elements('comment').first.get_text.value rescue nil
     if (self.is_tag = (self.name =~ /^TAG (.*)/))
       self.git_tag_name = $1.gsub(/[\s:]+/, '_')
     end
@@ -52,11 +53,14 @@ class DarcsPatch
   end
 
   def git_commit_message
-    (inverted ? "UNDO: #{name}" : name) + "\n\n\ndarcs-hash:#{identifier}"
+    msg = (inverted ? "UNDO: #{name}" : name)
+    msg << "\n\n#{comment}" if comment
+    msg << "\n\n\ndarcs-hash:#{identifier}"
+    msg
   end
 
   def self.read_from_repo(repo)
-    REXML::Document.new(output_of("darcs", "changes", "--reverse", "--repodir=#{repo}", "--xml")).get_elements('changelog/patch').map do |p|
+    REXML::Document.new(output_of("darcs", "changes", "--reverse", "--repodir=#{repo}", "--xml", "--summary")).get_elements('changelog/patch').map do |p|
       DarcsPatch.new(repo, p)
     end
   end
