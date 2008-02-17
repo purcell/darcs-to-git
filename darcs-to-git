@@ -12,7 +12,11 @@ require 'rexml/document'
 
 ENV['TZ'] = 'GMT0'
 
-SRCREPO = ARGV[0] || raise("usage: darcs-to-git DARCSREPO\n\nRun this in an empty directory when making an initial bulk conversion.")
+SRCREPO = ARGV[0]
+if [nil, '--help', '-h'].include?(SRCREPO)
+  STDERR.write("usage: darcs-to-git DARCSREPO\n\nRun this in an empty directory when making an initial bulk conversion.\n")
+  exit(1)
+end
 
 def run(*args)
   puts "Running: #{args.inspect}"
@@ -53,10 +57,9 @@ class DarcsPatch
   end
 
   def git_commit_message
-    msg = (inverted ? "UNDO: #{name}" : name)
-    msg << "\n\n#{comment}" if comment
-    msg << "\n\n\ndarcs-hash:#{identifier}"
-    msg
+    [ ((inverted ? "UNDO: #{name}" : name) unless name =~ /^\[\w+ @ \d+\]/),
+      comment,
+      "darcs-hash:#{identifier}" ].compact.join("\n\n")
   end
 
   def self.read_from_repo(repo)
