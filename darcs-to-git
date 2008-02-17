@@ -14,7 +14,22 @@ ENV['TZ'] = 'GMT0'
 
 SRCREPO = ARGV[0]
 if [nil, '--help', '-h'].include?(SRCREPO)
-  STDERR.write("usage: darcs-to-git DARCSREPO\n\nRun this in an empty directory when making an initial bulk conversion.\n")
+  STDERR.write(<<-end_usage)
+Creates git repositories from darcs repositories
+
+  usage: darcs-to-git DARCSREPO
+
+
+1. Create an *empty* directory that will become the new git repository
+2. From inside that directory, run this program, passing the location
+   of the source darcs repo as a parameter
+
+The program will git-init the empty directory, and migrate all patches
+in the source darcs repo into commits in that repository.
+
+Thereafter, incremental patch conversion from the same source repo is
+possible by repeating step 2.
+  end_usage
   exit(1)
 end
 
