@@ -165,6 +165,14 @@ class DarcsPatch
   def git_changed_files() git_ls_files(%w(? R C)) end
 end
 
+def darcs_version
+  output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
+end
+class Array; include Comparable; end
+
+unless darcs_version > [1, 0, 7]
+  STDERR.write("WARNING: your darcs appears to be old, and may not work with this script\n")
+end
 
 unless File.directory?("_darcs")
   run("darcs", "init")
