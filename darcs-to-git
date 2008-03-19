@@ -17,12 +17,12 @@ if [nil, '--help', '-h'].include?(SRCREPO)
   STDERR.write(<<-end_usage)
 Creates git repositories from darcs repositories
 
-  usage: darcs-to-git DARCSREPO
+  usage: darcs-to-git DARCSREPODIR
 
 
 1. Create an *empty* directory that will become the new git repository
 2. From inside that directory, run this program, passing the location
-   of the source darcs repo as a parameter
+   of the local source darcs repo as a parameter
 
 The program will git-init the empty directory, and migrate all patches
 in the source darcs repo into commits in that repository.
