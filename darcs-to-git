@@ -6,7 +6,6 @@
 
 # TODO: import parallel darcs repos as git branches, identifying branch points
 # TODO: recapture time zone: http://www.timeanddate.com/library/abbreviations/timezones/
-# TODO: fix darcs quoting (translate to utf8)
 # TODO: always use darcs branch
 
 require 'ostruct'
