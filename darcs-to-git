@@ -124,7 +124,8 @@ class DarcsPatch
     @author_name, @author_email = if (author =~ /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/)
                                     [$1, $2]
                                   elsif (author =~ /^\s*\<?(\S+@\S+?)\>?\s*$/)
-                                    [$1.split('@').first, $1]
+                                    email = $1
+                                    [email.split('@').first, email]
                                   else
                                     [author, ''] # Could manufacture or insert email address here
                                   end
