@@ -86,8 +86,8 @@ class DarcsPatch
                                        patch_xml.attribute('local_date').value)
     self.inverted = (patch_xml.attribute('inverted').to_s == 'True')
     self.identifier = patch_xml.attribute('hash').to_s
-    self.name = patch_xml.get_elements('name').first.get_text.value rescue 'Unnamed patch'
-    self.comment = patch_xml.get_elements('comment').first.get_text.value rescue nil
+    self.name = decode_darcs_escapes(patch_xml.get_elements('name').first.get_text.value) rescue 'Unnamed patch'
+    self.comment = decode_darcs_escapes(patch_xml.get_elements('comment').first.get_text.value) rescue nil
     if (self.is_tag = (self.name =~ /^TAG (.*)/))
       self.git_tag_name = $1.gsub(/[\s:]+/, '_')
     end
