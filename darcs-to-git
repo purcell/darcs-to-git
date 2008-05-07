@@ -175,7 +175,6 @@ class DarcsPatch
         output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
       output_nofail_of("grep", "#{identifier}", "#{GIT_PATCHES}").scan(/.* ([a-z0-9]+$)/).flatten.first
-      #output_of("git-log", "-n1", "--grep=darcs-hash:#{identifier}").scan(/^commit ([a-z0-9]+$)/).flatten.first
     end
   end
 
