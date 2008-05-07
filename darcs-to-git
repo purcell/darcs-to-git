@@ -5,13 +5,18 @@
 ##
 
 # TODO: import parallel darcs repos as git branches, identifying branch points
-
+# TODO: recapture time zone: http://www.timeanddate.com/library/abbreviations/timezones/
+# TODO: fix darcs quoting (translate to utf8)
+# TODO: always use darcs branch
 
 require 'ostruct'
 require 'rexml/document'
 
 ENV['TZ'] = 'GMT0'
 
+# GIT_DARCS_BRANCH = "darcs_repo"  # name of the branch we import to
+GIT_PATCHES = ".git/darcs_patches"
+ 
 SRCREPO = ARGV[0]
 if [nil, '--help', '-h'].include?(SRCREPO)
   STDERR.write(<<-end_usage)
@@ -48,6 +53,12 @@ def output_of(*args)
   end
 end
 
+# variant of output_of, but you have to check for success on your own
+def output_nofail_of(*args)
+  puts "Running: #{args.inspect}"
+  output = IO.popen(args.map {|a| "'#{a}'"}.join(' '), 'r') { |p| p.read }
+end
+
 
 class DarcsPatch
   attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name, :comment
@@ -73,8 +84,9 @@ class DarcsPatch
 
   def git_commit_message
     [ ((inverted ? "UNDO: #{name}" : name) unless name =~ /^\[\w+ @ \d+\]/),
-      comment,
-      "darcs-hash:#{identifier}" ].compact.join("\n\n")
+      comment
+    ].compact.join("\n\n")
+    #  "darcs-hash:#{identifier}" ].compact.join("\n\n")
   end
 
   def self.read_from_repo(repo)
@@ -138,6 +150,11 @@ class DarcsPatch
       end
       if git_changed_files.any? || new_files.any?
         run("git-commit", "-a", "-m", git_commit_message)
+        # get full id of last commit and associate it with the patch id
+        commit_id = output_of("git-log", "-n1").scan(/^commit ([a-z0-9]+$)/).flatten.first
+        inventory = File.open("#{GIT_PATCHES}", File::WRONLY | File::APPEND | File::CREAT)
+        inventory.puts "#{identifier} #{commit_id}"
+        inventory.close
       end
     end
   end
@@ -148,7 +165,8 @@ class DarcsPatch
       output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
         output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
-      output_of("git-log", "-n1", "--grep=darcs-hash:#{identifier}").scan(/^commit ([a-z0-9]+$)/).flatten.first
+      output_nofail_of("grep", "#{identifier}", "#{GIT_PATCHES}").scan(/.* ([a-z0-9]+$)/).flatten.first
+      #output_of("git-log", "-n1", "--grep=darcs-hash:#{identifier}").scan(/^commit ([a-z0-9]+$)/).flatten.first
     end
   end
 
@@ -177,6 +195,7 @@ end
 unless File.directory?("_darcs")
   run("darcs", "init")
   run("git-init")
+  run("touch", "#{GIT_PATCHES}")
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
 end
