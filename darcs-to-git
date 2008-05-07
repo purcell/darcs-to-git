@@ -34,6 +34,12 @@ in the source darcs repo into commits in that repository.
 Thereafter, incremental patch conversion from the same source repo is
 possible by repeating step 2.
 
+NOTE: In case of multiple tags, only the first one will be applied.
+If you really need to, you can manually identify the patch and use 
+\"git tag -f <tagname> <sha1-of-commit-before-tagging>\".
+
+OPTIONS
+
 "
   opts.on('-e','--default-email ADDRESS',
           "Set the email address used when no explicit address is given") do |m|
