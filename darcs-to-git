@@ -219,3 +219,6 @@ while patch = patches.pop
 end
 
 patches_to_pull.each { |patch| patch.pull_and_apply }
+
+puts "\ndarcs import successful.  You may now want to run `git gc' to
+improve space usage the git repo"
