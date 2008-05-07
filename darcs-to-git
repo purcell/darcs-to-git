@@ -128,6 +128,15 @@ class DarcsPatch
                                   else
                                     [author, ''] # Could manufacture or insert email address here
                                   end
+    @author_name = decode_darcs_escapes(@author_name)
+    # XXX: do the same for names/comments?
+  end
+
+  def decode_darcs_escapes(str)
+    # darcs uses '[_\hh_]' to quote non-ascii characters where 'h' is
+    # a hexadecimal.  We translate this to '=hh' and use ruby's unpack
+    # to do replace this with the proper byte.
+    str.gsub(/\[\_\\(..)\_\]/) { |x| "=#{$1}" }.unpack("M*")[0]
   end
 
   def pull
