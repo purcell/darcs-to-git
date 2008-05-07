@@ -17,7 +17,7 @@ require 'optparse'
 # GIT_DARCS_BRANCH = "darcs_repo"  # name of the branch we import to
 GIT_PATCHES = ".git/darcs_patches"
 
-options = { :default_email => '' }
+OPTIONS = { :default_email => '' }
 opts = OptionParser.new do |opts|
   opts.banner = "Creates git repositories from darcs repositories
 
@@ -43,7 +43,7 @@ OPTIONS
 "
   opts.on('-e','--default-email ADDRESS',
           "Set the email address used when no explicit address is given") do |m|
-     options[:default_email] = m
+     OPTIONS[:default_email] = m
   end
 end
 opts.parse!
@@ -149,7 +149,7 @@ class DarcsPatch
                                     email = $1
                                     [email.split('@').first, email]
                                   else
-                                    [author, options[:default_email]]
+                                    [author, OPTIONS[:default_email]]
                                   end
     @author_name = decode_darcs_escapes(@author_name)
     # XXX: do the same for names/comments?
