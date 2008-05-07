@@ -5,10 +5,10 @@
 ##
 
 # TODO: import parallel darcs repos as git branches, identifying branch points
-# TODO: add argument for default email address
 
 require 'ostruct'
 require 'rexml/document'
+require 'optparse'
 
 # Explicitly setting a time zone would cause darcs to only output in
 # that timezone hence we couldn't get the actual patch TZ
@@ -16,13 +16,12 @@ require 'rexml/document'
 
 # GIT_DARCS_BRANCH = "darcs_repo"  # name of the branch we import to
 GIT_PATCHES = ".git/darcs_patches"
- 
-SRCREPO = ARGV[0]
-if [nil, '--help', '-h'].include?(SRCREPO)
-  STDERR.write(<<-end_usage)
-Creates git repositories from darcs repositories
 
-  usage: darcs-to-git DARCSREPODIR
+options = { :default_email => '' }
+opts = OptionParser.new do |opts|
+  opts.banner = "Creates git repositories from darcs repositories
+
+  usage: darcs-to-git DARCSREPODIR [options]
 
 
 1. Create an *empty* directory that will become the new git repository
@@ -34,7 +33,23 @@ in the source darcs repo into commits in that repository.
 
 Thereafter, incremental patch conversion from the same source repo is
 possible by repeating step 2.
-  end_usage
+
+"
+  opts.on('-e','--default-email ADDRESS',
+          "Set the email address used when no explicit address is given") do |m|
+     options[:default_email] = m
+  end
+end
+opts.parse!
+
+SRCREPO = ARGV[0]
+if SRCREPO.nil? or not FileTest.exists?(SRCREPO + '/_darcs') then
+  if SRCREPO.nil? then
+    puts opts.banner()
+    puts opts.summarize()
+  else
+    puts "Argument must be a valid darcs repository"
+  end
   exit(1)
 end
 
@@ -128,7 +143,7 @@ class DarcsPatch
                                     email = $1
                                     [email.split('@').first, email]
                                   else
-                                    [author, ''] # Could manufacture or insert email address here
+                                    [author, options[:default_email]]
                                   end
     @author_name = decode_darcs_escapes(@author_name)
     # XXX: do the same for names/comments?
