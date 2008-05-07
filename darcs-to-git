@@ -254,5 +254,18 @@ end
 
 patches_to_pull.each { |patch| patch.pull_and_apply }
 
-puts "\ndarcs import successful.  You may now want to run `git gc' to
+def check_consistent()
+  puts "Checking for consistency ..."
+  system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
+  if $? == 0 then
+    puts "\nDarcs import successful!  You may now want to run `git gc' to
 improve space usage the git repo"
+  else
+    puts "!!! There were differences!  See diff above for details."
+    puts "!!! It maybe that the source repository was dirty."
+    puts "!!! Run \"cd #{SRCREPO} && darcs whatsnew\" to check."
+  end
+end
+
+check_consistent()
+
