@@ -5,8 +5,7 @@
 ##
 
 # TODO: import parallel darcs repos as git branches, identifying branch points
-# TODO: recapture time zone: http://www.timeanddate.com/library/abbreviations/timezones/
-# TODO: always use darcs branch
+# TODO: add argument for default email address
 
 require 'ostruct'
 require 'rexml/document'
