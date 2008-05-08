@@ -19,7 +19,10 @@ require 'optparse'
 # GIT_DARCS_BRANCH = "darcs_repo"  # name of the branch we import to
 GIT_PATCHES = ".git/darcs_patches"
 
-OPTIONS = { :default_email => '' }
+OPTIONS = { :default_email => nil,
+            :list_authors  => false,
+            :author_map    => nil,
+            :num_patches   => 0 }
 opts = OptionParser.new do |opts|
   opts.banner = "Creates git repositories from darcs repositories
 
@@ -45,7 +48,19 @@ OPTIONS
 "
   opts.on('-e','--default-email ADDRESS',
           "Set the email address used when no explicit address is given") do |m|
-     OPTIONS[:default_email] = m
+    OPTIONS[:default_email] = m
+  end
+  opts.on('-a','--list-authors',
+          "List all unique authors in source repo and quit.") do |m|
+    OPTIONS[:list_authors] = m
+  end
+  opts.on('-m','--author-map FILE',
+          "Supply a YAML file that maps commiter names to canonical author names") do |f|
+    OPTIONS[:author_map] = f
+  end
+  opts.on('--patches [N]', OptionParser::DecimalInteger,
+          "Only pull N patches.") do |n|
+    OPTIONS[:num_patches] = n
   end
 end
 opts.parse!
