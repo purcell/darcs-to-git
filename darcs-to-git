@@ -4,7 +4,9 @@
 ## Obtain the latest version of this software here: http://git.sanityinc.com/
 ##
 
+# XXX: make backwards compatible
 # TODO: import parallel darcs repos as git branches, identifying branch points
+# TODO: use default repo if none was supplied
 
 require 'ostruct'
 require 'rexml/document'
