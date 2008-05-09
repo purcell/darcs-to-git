@@ -72,7 +72,7 @@ if SRCREPO.nil? or not FileTest.exists?(SRCREPO + '/_darcs') then
     puts opts.banner()
     puts opts.summarize()
   else
-    puts "Argument must be a valid darcs repository"
+    puts "Argument must be a valid local darcs repository"
   end
   exit(1)
 end
@@ -304,7 +304,7 @@ improve space usage the git repo"
   else
     puts "!!! There were differences!  See diff above for details."
     puts "!!! It maybe that the source repository was dirty."
-    puts "!!! Run \"cd #{SRCREPO} && darcs whatsnew\" to check."
+    puts "!!! Run \"cd #{SRCREPO} && darcs whatsnew -sl\" to check."
   end
 end
 
