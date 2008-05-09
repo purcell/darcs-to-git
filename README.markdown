@@ -46,3 +46,17 @@ Options
    name to Git committer name.  The input is a YAML map.  For an
    example see the output of `--author-map`.  The author map will be
    stored in the repository and will be re-used for future imports.
+
+
+KNOWN ISSUES
+------------
+
+When `darcs-to-git` pulls a conflicting patch it will revert the state
+of the repository to the state before the conflict. *THIS WILL ALSO
+REMOVE ANY LOCAL CHANGES TO YOUR REPOSITORY, INCLUDING GIT COMMITS!*
+You should therefore not commit to the branch you import to, but
+instead work in a different branch.  You can rename your master branch
+after import using:
+
+    $ git branch -m darcs_import
+
