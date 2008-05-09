@@ -325,6 +325,7 @@ unless File.directory?("_darcs")
   run("touch", "#{GIT_PATCHES}")
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
+  # TODO: migrate darcs borings into git excludes?
 end
 
 unless FileTest.exists?("#{GIT_PATCHES}")
