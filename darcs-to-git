@@ -221,7 +221,7 @@ class DarcsPatch
         output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
       if $darcs_patches_in_git.nil? then
-        $darcs_patches_in_git = (YAML.load_file("#{GIT_PATCHES}") or {})
+        $darcs_patches_in_git = YAML.load_file("#{GIT_PATCHES}")
       end
       $darcs_patches_in_git[identifier];
     end
