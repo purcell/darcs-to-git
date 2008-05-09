@@ -244,25 +244,34 @@ class DarcsPatch
   end
 
   def darcs_date_to_git_date(utc,local)
-    # We ignore the timezone name (it may be ambiguous) and instead
-    # calculate the timezone offset ourselves
+    # Calculates a git-friendly date (e.g., timezone CET decribed as
+    # +0100) by using the two date fields that darcs gives us: a list
+    # of numbers describing the UTC time and a local time formatted in
+    # a human-readable format.  We could parse the local time and
+    # derive the timezone offset from the timezone name. but timezones
+    # aren't well-defined, so we ignore the timezone name and instead
+    # calculate the timezone offset ourselves by calculating the
+    # difference between local time and ITC time.
     if not utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ then
       raise "Wrong darcs date format"
     end
     utc_time = Time.utc($1,$2,$3,$4,$5,$6)
-    # darcs example: Mon Oct  2 14:23:28 CEST 2006
-    # everything except timezone name is fixed-length
-    # if parsing failes we just use UTC
-    if local =~ /^(\w\w\w) (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/ then
-      local_time = Time.utc($7,$2,$3,$4,$5,$6)
+    # example: Mon Oct  2 14:23:28 CEST 2006
+    # everything except timezone name is fixed-length, if parsing
+    # failes we just use UTC
+    pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/
+    if local =~ pat then
+      local_time = Time.utc($6,$1,$2,$3,$4,$5)
     else
       local_time = utc_time
     end
-    offs = local_time - utc_time
+    offs = local_time - utc_time # time offset in seconds
     t = local_time
-    s = sprintf("%4d-%02d-%02d %02d:%02d:%02d %s%02d%02d", t.year, t.month, t.day,
+    # formats the above example as: 2006-10-02 14:23:28 +0200
+    s = sprintf("%4d-%02d-%02d %02d:%02d:%02d %s%02d%02d",
+                t.year, t.month, t.day,
                 t.hour, t.min, t.sec,
-                offs < 0 ? "-" : "+",offs.abs/3600,offs.abs.modulo(3600)/60 )
+                offs < 0 ? "-" : "+", offs.abs/3600, offs.abs.modulo(3600)/60 )
   end
 
   def git_ls_files(wanted)
