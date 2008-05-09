@@ -377,9 +377,13 @@ def check_consistent(pulled)
     ok = $? == 0
   end
   if ok then
-    puts "\nPulled #{pulled.length} patch#{pulled.length != 1 ? "es" : ""}."
-    puts "\nDarcs import successful!  You may now want to run `git gc' to
+    if pulled.length == 0 then
+      puts "\nNothing to pull."
+    else
+      puts "\nPulled #{pulled.length} patch#{pulled.length != 1 ? "es" : ""}."
+      puts "\nDarcs import successful!  You may now want to run `git gc' to
 improve space usage the git repo"
+    end
   else
     puts "!!! There were differences!  See diff above for details."
     puts "!!! It maybe that the source repository was dirty."
