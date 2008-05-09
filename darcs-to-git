@@ -293,12 +293,26 @@ while patch = patches.pop
   patches_to_pull.unshift(patch)
 end
 
+$run_consistency_check = true
+if OPTIONS[:num_patches] > 0 then
+  # if we don't pull all patches, then the consistency check would
+  # fail, so we simply skip it
+  $run_consistency_check = patches_to_pull.length <= OPTIONS[:num_patches]
+  # only pull specified number of patches
+  patches_to_pull = patches_to_pull[0, OPTIONS[:num_patches]]
+end
+
 patches_to_pull.each { |patch| patch.pull_and_apply }
 
-def check_consistent()
-  puts "Checking for consistency ..."
-  system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
-  if $? == 0 then
+def check_consistent(pulled)
+  ok = true
+  if $run_consistency_check then
+    puts "Checking for consistency ..."
+    system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
+    ok = $? == 0
+  end
+  if ok then
+    puts "\nPulled #{pulled.length} patch#{pulled.length != 1 ? "es" : ""}."
     puts "\nDarcs import successful!  You may now want to run `git gc' to
 improve space usage the git repo"
   else
@@ -308,5 +322,4 @@ improve space usage the git repo"
   end
 end
 
-check_consistent()
-
+check_consistent(patches_to_pull)
