@@ -11,6 +11,7 @@
 require 'ostruct'
 require 'rexml/document'
 require 'optparse'
+require 'yaml'
 
 # Explicitly setting a time zone would cause darcs to only output in
 # that timezone hence we couldn't get the actual patch TZ
@@ -249,6 +250,19 @@ class DarcsPatch
   def git_changed_files() git_ls_files(%w(? R C)) end
 end
 
+def extract_authors(patches)
+  unique_authors = {}
+  patches.each do |p|
+    unique_authors[p.author] =
+      "#{p.author_name}" + (p.author_email.empty? ? "" : " <#{p.author_email}>")
+  end
+  puts "# You can use the following output as a starting point for an author_map"
+  puts "# Just fill in the proper text after the colon;  put email addresses in"
+  puts "# angle brackets. You can remove any lines that look OK to you."
+  # TODO: Can we make the output sorted?
+  puts YAML::dump( unique_authors )
+end
+
 def darcs_version
   output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
 end
@@ -268,6 +282,10 @@ end
 
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
+if OPTIONS[:list_authors] then
+  extract_authors(patches)
+  exit(0)
+end
 
 patches_to_pull = []
 while patch = patches.pop
