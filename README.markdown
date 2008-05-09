@@ -44,4 +44,5 @@ Options
 
  * `--author-map FILENAME`: Allows translations from darcs committer
    name to Git committer name.  The input is a YAML map.  For an
-   example see the output of `--author-map`.
+   example see the output of `--author-map`.  The author map will be
+   stored in the repository and will be re-used for future imports.

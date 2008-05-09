@@ -19,6 +19,7 @@ require 'yaml'
 
 # GIT_DARCS_BRANCH = "darcs_repo"  # name of the branch we import to
 GIT_PATCHES = ".git/darcs_patches"
+AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
 
 OPTIONS = { :default_email => nil,
             :list_authors  => false,
@@ -75,25 +76,6 @@ if SRCREPO.nil? or not FileTest.exists?(SRCREPO + '/_darcs') then
     puts "Argument must be a valid local darcs repository"
   end
   exit(1)
-end
-
-if OPTIONS[:author_map] then
-  unless FileTest.exists?(OPTIONS[:author_map])
-    STDERR.puts "File #{OPTIONS[:author_map]} does not exist"
-    exit(1)
-  end
-  begin
-    AUTHOR_MAP = (YAML.load_file(OPTIONS[:author_map]) or {})
-  rescue
-    STDERR.puts "Could not parse #{(OPTIONS[:author_map])}"
-    exit(1)
-  end
-  unless AUTHOR_MAP.class == Hash
-    STDERR.puts "Wrong file format for author file."
-    exit(1)
-  end
-else
-  AUTHOR_MAP = {}
 end
 
 def run(*args)
@@ -332,6 +314,33 @@ unless FileTest.exists?("#{GIT_PATCHES}")
   # XXX: convert to new format
   STDERR.puts "It seems your repo has been created with an old version of #{$0}."
   exit(1)
+end
+
+if OPTIONS[:author_map] then
+  unless FileTest.exists?(OPTIONS[:author_map])
+    STDERR.puts "File #{OPTIONS[:author_map]} does not exist"
+    exit(1)
+  end
+  begin
+    AUTHOR_MAP = (YAML.load_file(OPTIONS[:author_map]) or {})
+  rescue
+    STDERR.puts "Could not parse #{(OPTIONS[:author_map])}"
+    exit(1)
+  end
+  unless AUTHOR_MAP.class == Hash
+    STDERR.puts "Wrong file format for author file."
+    exit(1)
+  end
+  File.open("#{AUTHOR_MAP_FILE}", File::WRONLY|File::CREAT) do |f|
+    YAML::dump(AUTHOR_MAP, f)
+  end
+else
+  #if FileTest.exists?(AUTHOR_MAP_FILE) then
+  begin
+    AUTHOR_MAP = AUTHOR_MAP = (YAML.load_file(AUTHOR_MAP_FILE) or {})
+  rescue
+    AUTHOR_MAP = {}
+  end
 end
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
