@@ -339,9 +339,8 @@ if OPTIONS[:author_map] then
     YAML::dump(AUTHOR_MAP, f)
   end
 else
-  #if FileTest.exists?(AUTHOR_MAP_FILE) then
   begin
-    AUTHOR_MAP = AUTHOR_MAP = (YAML.load_file(AUTHOR_MAP_FILE) or {})
+    AUTHOR_MAP = (YAML.load_file(AUTHOR_MAP_FILE) or {})
   rescue
     AUTHOR_MAP = {}
   end
