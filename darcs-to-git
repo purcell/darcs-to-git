@@ -354,7 +354,7 @@ end
 
 patches_to_pull = []
 while patch = patches.pop
-  break if patch.id_in_git_repo
+  next if patch.id_in_git_repo
   patches_to_pull.unshift(patch)
 end
 
