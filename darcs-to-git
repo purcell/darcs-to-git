@@ -283,7 +283,7 @@ def extract_authors(patches)
   unique_authors = {}
   patches.each do |p|
     unique_authors[p.author] =
-      "#{p.author_name}" + (p.author_email.empty? ? "" : " <#{p.author_email}>")
+      "#{p.author_name}" + (p.author_email.nil? ? "" : " <#{p.author_email}>")
   end
   puts "# You can use the following output as a starting point for an author_map"
   puts "# Just fill in the proper text after the colon;  put email addresses in"
