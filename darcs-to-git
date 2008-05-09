@@ -316,6 +316,10 @@ unless FileTest.exists?("#{GIT_PATCHES}")
   exit(1)
 end
 
+unless OPTIONS[:default_email].nil?
+  run("git-config", "user.email", OPTIONS[:default_email])
+end
+
 if OPTIONS[:author_map] then
   unless FileTest.exists?(OPTIONS[:author_map])
     STDERR.puts "File #{OPTIONS[:author_map]} does not exist"
