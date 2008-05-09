@@ -77,6 +77,25 @@ if SRCREPO.nil? or not FileTest.exists?(SRCREPO + '/_darcs') then
   exit(1)
 end
 
+if OPTIONS[:author_map] then
+  unless FileTest.exists?(OPTIONS[:author_map])
+    STDERR.puts "File #{OPTIONS[:author_map]} does not exist"
+    exit(1)
+  end
+  begin
+    AUTHOR_MAP = (YAML.load_file(OPTIONS[:author_map]) or {})
+  rescue
+    STDERR.puts "Could not parse #{(OPTIONS[:author_map])}"
+    exit(1)
+  end
+  unless AUTHOR_MAP.class == Hash
+    STDERR.puts "Wrong file format for author file."
+    exit(1)
+  end
+else
+  AUTHOR_MAP = {}
+end
+
 def run(*args)
   puts "Running: #{args.inspect}"
   system(*args) || raise("Failed to run: #{args.inspect}")
@@ -105,7 +124,8 @@ class DarcsPatch
 
   def initialize(source_repo, patch_xml)
     self.source_repo = source_repo
-    self.author = patch_xml.attribute('author').value
+    darcs_author = decode_darcs_escapes(patch_xml.attribute('author').value)
+    self.author = AUTHOR_MAP.fetch(darcs_author, darcs_author)
     self.date = darcs_date_to_git_date(patch_xml.attribute('date').value,
                                        patch_xml.attribute('local_date').value)
     self.inverted = (patch_xml.attribute('inverted').to_s == 'True')
