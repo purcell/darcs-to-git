@@ -117,6 +117,7 @@ def output_nofail_of(*args)
   output = IO.popen(args.map {|a| "'#{a}'"}.join(' '), 'r') { |p| p.read }
 end
 
+$darcs_patches_in_git = nil
 
 class DarcsPatch
   attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name, :comment
@@ -226,9 +227,7 @@ class DarcsPatch
         run("git-commit", "-a", "-m", git_commit_message)
         # get full id of last commit and associate it with the patch id
         commit_id = output_of("git-log", "-n1").scan(/^commit ([a-z0-9]+$)/).flatten.first
-        inventory = File.open("#{GIT_PATCHES}", File::WRONLY | File::APPEND | File::CREAT)
-        inventory.puts "#{identifier} #{commit_id}"
-        inventory.close
+        record_git_commit(commit_id)
       end
     end
   end
@@ -239,7 +238,22 @@ class DarcsPatch
       output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
         output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
-      output_nofail_of("grep", "#{identifier}", "#{GIT_PATCHES}").scan(/.* ([a-z0-9]+$)/).flatten.first
+      if $darcs_patches_in_git.nil? then
+        $darcs_patches_in_git = (YAML.load_file("#{GIT_PATCHES}") or {})
+      end
+      $darcs_patches_in_git[identifier];
+    end
+  end
+
+  def record_git_commit(commit_id)
+    # using one file per darcs patch would be an incredible waste of space
+    # on my system one file takes up 4K even if only a few bytes are in it
+    # hence we just use a simple YAML hash
+    unless $darcs_patches_in_git.nil?
+      $darcs_patches_in_git[identifier] = commit_id
+    end
+    File.open(GIT_PATCHES, File::WRONLY|File::APPEND|File::CREAT) do |f|
+      f.puts "#{identifier}: #{commit_id}"
     end
   end
 
