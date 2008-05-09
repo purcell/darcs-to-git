@@ -313,6 +313,11 @@ unless File.directory?("_darcs")
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
 end
 
+unless FileTest.exists?("#{GIT_PATCHES}")
+  # XXX: convert to new format
+  STDERR.puts "It seems your repo has been created with an old version of #{$0}."
+  exit(1)
+end
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
 if OPTIONS[:list_authors] then
