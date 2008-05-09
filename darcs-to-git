@@ -150,7 +150,10 @@ class DarcsPatch
   end
 
   def self.read_from_repo(repo)
-    REXML::Document.new(output_of("darcs", "changes", "--reverse", "--repodir=#{repo}", "--xml", "--summary")).get_elements('changelog/patch').map do |p|
+    REXML::Document.new(output_of("darcs", "changes", "--reverse",
+                                  "--repodir=#{repo}", "--xml",
+                                  "--summary")).
+      get_elements('changelog/patch').map do |p|
       DarcsPatch.new(repo, p)
     end
   end
@@ -181,16 +184,15 @@ class DarcsPatch
   private
 
   def author_scan
-    @author_name, @author_email = if (author =~ /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/)
-                                    [$1, $2]
-                                  elsif (author =~ /^\s*\<?(\S+@\S+?)\>?\s*$/)
-                                    email = $1
-                                    [email.split('@').first, email]
-                                  else
-                                    [author, OPTIONS[:default_email]]
-                                  end
-    @author_name = decode_darcs_escapes(@author_name)
-    # XXX: do the same for names/comments?
+    @author_name, @author_email =
+      if (author =~ /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/)
+        [$1, $2]
+      elsif (author =~ /^\s*\<?(\S+@\S+?)\>?\s*$/)
+        email = $1
+        [email.split('@').first, email]
+      else
+        [author, OPTIONS[:default_email]]
+      end
   end
 
   def decode_darcs_escapes(str)
@@ -201,7 +203,9 @@ class DarcsPatch
   end
 
   def pull
-    run("darcs", "pull", "--all", "--quiet", "--match", "hash #{identifier}", "--set-scripts-executable", source_repo)
+    run("darcs", "pull", "--all", "--quiet",
+        "--match", "hash #{identifier}",
+        "--set-scripts-executable", source_repo)
     unless `darcs whatsnew -sl` =~ /^No changes!$/
       puts "Darcs reports dirty directory: assuming conflict that is fixed by a later patch... reverting"
       run("darcs revert --all")
