@@ -78,6 +78,10 @@ if SRCREPO.nil? or not FileTest.exists?(SRCREPO + '/_darcs') then
   exit(1)
 end
 
+
+# -------------------------------------------------------------------------------
+# Utilities
+# -------------------------------------------------------------------------------
 def run(*args)
   puts "Running: #{args.inspect}"
   system(*args) || raise("Failed to run: #{args.inspect}")
@@ -93,6 +97,15 @@ def output_of(*args)
   end
 end
 
+def String
+  def darcs_unescape
+    # darcs uses '[_\hh_]' to quote non-ascii characters where 'h' is
+    # a hexadecimal.  We translate this to '=hh' and use ruby's unpack
+    # to do replace this with the proper byte.
+    gsub(/\[\_\\(..)\_\]/) { |x| "=#{$1}" }.unpack("M*")[0]
+  end
+end
+
 $darcs_patches_in_git = nil
 
 class DarcsPatch
@@ -101,14 +114,14 @@ class DarcsPatch
 
   def initialize(source_repo, patch_xml)
     self.source_repo = source_repo
-    darcs_author = decode_darcs_escapes(patch_xml.attribute('author').value)
+    darcs_author = patch_xml.attribute('author').value.darcs_unescape
     self.author = AUTHOR_MAP.fetch(darcs_author, darcs_author)
     self.date = darcs_date_to_git_date(patch_xml.attribute('date').value,
                                        patch_xml.attribute('local_date').value)
     self.inverted = (patch_xml.attribute('inverted').to_s == 'True')
     self.identifier = patch_xml.attribute('hash').to_s
-    self.name = decode_darcs_escapes(patch_xml.get_elements('name').first.get_text.value) rescue 'Unnamed patch'
-    self.comment = decode_darcs_escapes(patch_xml.get_elements('comment').first.get_text.value) rescue nil
+    self.name = patch_xml.get_elements('name').first.get_text.value.darcs_unescape rescue 'Unnamed patch'
+    self.comment = patch_xml.get_elements('comment').first.get_text.value.darcs_unescape rescue nil
     if (self.is_tag = (self.name =~ /^TAG (.*)/))
       self.git_tag_name = $1.gsub(/[\s:]+/, '_')
     end
@@ -170,13 +183,6 @@ class DarcsPatch
       else
         [author, OPTIONS[:default_email]]
       end
-  end
-
-  def decode_darcs_escapes(str)
-    # darcs uses '[_\hh_]' to quote non-ascii characters where 'h' is
-    # a hexadecimal.  We translate this to '=hh' and use ruby's unpack
-    # to do replace this with the proper byte.
-    str.gsub(/\[\_\\(..)\_\]/) { |x| "=#{$1}" }.unpack("M*")[0]
   end
 
   def pull
