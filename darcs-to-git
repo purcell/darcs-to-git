@@ -17,16 +17,20 @@ require 'yaml'
 # that timezone hence we couldn't get the actual patch TZ
 # ENV['TZ'] = 'GMT0'
 
-# GIT_DARCS_BRANCH = "darcs_repo"  # name of the branch we import to
 GIT_PATCHES = ".git/darcs_patches"
-AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
+DEFAULT_AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
+
+# -------------------------------------------------------------------------------
+# Usage info and argument parsing
+# -------------------------------------------------------------------------------
 
 OPTIONS = { :default_email => nil,
             :list_authors  => false,
             :author_map    => nil,
             :num_patches   => 0 }
 opts = OptionParser.new do |opts|
-  opts.banner = "Creates git repositories from darcs repositories
+  opts.banner = <<-end_usage
+Creates git repositories from darcs repositories
 
   usage: darcs-to-git DARCSREPODIR [options]
 
@@ -47,7 +51,7 @@ If you really need to, you can manually identify the patch and use
 
 OPTIONS
 
-"
+  end_usage
   opts.on('--default-email ADDRESS',
           "Set the email address used when no explicit address is given") do |m|
     OPTIONS[:default_email] = m
@@ -57,7 +61,7 @@ OPTIONS
     OPTIONS[:list_authors] = m
   end
   opts.on('--author-map FILE',
-          "Supply a YAML file that maps commiter names to canonical author names") do |f|
+          "Supply a YAML file that maps committer names to canonical author names") do |f|
     OPTIONS[:author_map] = f
   end
   opts.on('--patches [N]', OptionParser::DecimalInteger,
@@ -97,7 +101,7 @@ def output_of(*args)
   end
 end
 
-def String
+class String
   def darcs_unescape
     # darcs uses '[_\hh_]' to quote non-ascii characters where 'h' is
     # a hexadecimal.  We translate this to '=hh' and use ruby's unpack
@@ -106,16 +110,50 @@ def String
   end
 end
 
+
+# -------------------------------------------------------------------------------
+# Map darcs authors to git authors
+# -------------------------------------------------------------------------------
+class AuthorMap < Hash
+  attr_accessor :default_email
+
+  def self.load(filename)
+    new.merge(YAML.load_file(filename))
+  end
+
+  # gives the name and email
+  def [](author)
+    name_and_email(super || author)
+  end
+
+  private
+
+  def name_and_email(author)
+    if (author =~ /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/)
+      [$1, $2]
+    elsif (author =~ /^\s*\<?(\S+@\S+?)\>?\s*$/)
+      email = $1
+      [email.split('@').first, email]
+    else
+      [author, default_email]
+    end
+  end
+end
+
+
+# -------------------------------------------------------------------------------
+# Reading darcs patches and applying them to a git repo
+# -------------------------------------------------------------------------------
 $darcs_patches_in_git = nil
+
 
 class DarcsPatch
   attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name, :comment
-  attr_reader :author_name, :author_email
+  attr_reader :git_author_name, :git_author_email
 
   def initialize(source_repo, patch_xml)
     self.source_repo = source_repo
-    darcs_author = patch_xml.attribute('author').value.darcs_unescape
-    self.author = AUTHOR_MAP.fetch(darcs_author, darcs_author)
+    self.author = patch_xml.attribute('author').value.darcs_unescape
     self.date = darcs_date_to_git_date(patch_xml.attribute('date').value,
                                        patch_xml.attribute('local_date').value)
     self.inverted = (patch_xml.attribute('inverted').to_s == 'True')
@@ -125,7 +163,7 @@ class DarcsPatch
     if (self.is_tag = (self.name =~ /^TAG (.*)/))
       self.git_tag_name = $1.gsub(/[\s:]+/, '_')
     end
-    author_scan
+    @git_author_name, @git_author_email = AUTHOR_MAP[author]
   end
 
   def <=>(other)
@@ -157,8 +195,7 @@ class DarcsPatch
     puts "\n" + ("=" * 80)
     puts "PATCH : #{name}"
     puts "DATE  : #{date}"
-    puts "AUTHOR: #{author_name}"
-    puts "EMAIL : #{author_email}"
+    puts "AUTHOR: #{author} => #{git_author_name} <#{git_author_email}>"
     puts "=" * 80
 
     if id_in_git_repo
@@ -173,18 +210,6 @@ class DarcsPatch
 
   private
 
-  def author_scan
-    @author_name, @author_email =
-      if (author =~ /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/)
-        [$1, $2]
-      elsif (author =~ /^\s*\<?(\S+@\S+?)\>?\s*$/)
-        email = $1
-        [email.split('@').first, email]
-      else
-        [author, OPTIONS[:default_email]]
-      end
-  end
-
   def pull
     run("darcs", "pull", "--all", "--quiet",
         "--match", "hash #{identifier}",
@@ -196,8 +221,8 @@ class DarcsPatch
   end
 
   def apply_to_git_repo
-    ENV['GIT_AUTHOR_NAME'] = ENV['GIT_COMMITTER_NAME'] = author_name
-    ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = author_email
+    ENV['GIT_AUTHOR_NAME'] = ENV['GIT_COMMITTER_NAME'] = git_author_name
+    ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = git_author_email
     ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
     if is_tag
       run("git-tag", "-a", "-m", git_commit_message, git_tag_name)
@@ -247,20 +272,20 @@ class DarcsPatch
     # derive the timezone offset from the timezone name. but timezones
     # aren't well-defined, so we ignore the timezone name and instead
     # calculate the timezone offset ourselves by calculating the
-    # difference between local time and ITC time.
+    # difference between local time and UTC time.
     if not utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ then
       raise "Wrong darcs date format"
     end
     utc_time = Time.utc($1,$2,$3,$4,$5,$6)
     # example: Mon Oct  2 14:23:28 CEST 2006
     # everything except timezone name is fixed-length, if parsing
-    # failes we just use UTC
+    # fails we just use UTC
     pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/
-    if local =~ pat then
-      local_time = Time.utc($6,$1,$2,$3,$4,$5)
-    else
-      local_time = utc_time
-    end
+    local_time = if local =~ pat then
+                   Time.utc($6,$1,$2,$3,$4,$5)
+                 else
+                   utc_time
+                 end
     offs = local_time - utc_time # time offset in seconds
     t = local_time
     # formats the above example as: 2006-10-02 14:23:28 +0200
@@ -283,7 +308,7 @@ def extract_authors(patches)
   unique_authors = {}
   patches.each do |p|
     unique_authors[p.author] =
-      "#{p.author_name}" + (p.author_email.nil? ? "" : " <#{p.author_email}>")
+      "#{p.git_author_name}" + (p.git_author_email.nil? ? "" : " <#{p.git_author_email}>")
   end
   puts "# You can use the following output as a starting point for an author_map"
   puts "# Just fill in the proper text after the colon;  put email addresses in"
@@ -291,6 +316,11 @@ def extract_authors(patches)
   # TODO: Can we make the output sorted?
   puts YAML::dump( unique_authors )
 end
+
+
+# -------------------------------------------------------------------------------
+# Pre-flight checks
+# -------------------------------------------------------------------------------
 
 def darcs_version
   output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
@@ -300,6 +330,11 @@ class Array; include Comparable; end
 unless darcs_version > [1, 0, 7]
   STDERR.write("WARNING: your darcs appears to be old, and may not work with this script\n")
 end
+
+
+# -------------------------------------------------------------------------------
+# Initialise the working area
+# -------------------------------------------------------------------------------
 
 unless File.directory?("_darcs")
   run("darcs", "init")
@@ -316,35 +351,14 @@ unless FileTest.exists?("#{GIT_PATCHES}")
   exit(1)
 end
 
-unless OPTIONS[:default_email].nil?
-  run("git-config", "user.email", OPTIONS[:default_email])
-end
-
-if OPTIONS[:author_map] then
-  unless FileTest.exists?(OPTIONS[:author_map])
-    STDERR.puts "File #{OPTIONS[:author_map]} does not exist"
-    exit(1)
-  end
-  begin
-    AUTHOR_MAP = (YAML.load_file(OPTIONS[:author_map]) or {})
-  rescue
-    STDERR.puts "Could not parse #{(OPTIONS[:author_map])}"
-    exit(1)
-  end
-  unless AUTHOR_MAP.class == Hash
-    STDERR.puts "Wrong file format for author file."
-    exit(1)
-  end
-  File.open("#{AUTHOR_MAP_FILE}", File::WRONLY|File::CREAT) do |f|
-    YAML::dump(AUTHOR_MAP, f)
-  end
-else
-  begin
-    AUTHOR_MAP = (YAML.load_file(AUTHOR_MAP_FILE) or {})
-  rescue
-    AUTHOR_MAP = {}
-  end
-end
+AUTHOR_MAP = if OPTIONS[:author_map] then
+               AuthorMap.load(OPTIONS[:author_map])
+             elsif File.exists?(DEFAULT_AUTHOR_MAP_FILE)
+               AuthorMap.load(DEFAULT_AUTHOR_MAP_FILE)
+             else
+               AuthorMap.new
+             end
+AUTHOR_MAP.default_email = OPTIONS[:default_email]
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
 if OPTIONS[:list_authors] then
