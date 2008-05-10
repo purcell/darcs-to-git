@@ -93,12 +93,6 @@ def output_of(*args)
   end
 end
 
-# variant of output_of, but you have to check for success on your own
-def output_nofail_of(*args)
-  puts "Running: #{args.inspect}"
-  output = IO.popen(args.map {|a| "'#{a}'"}.join(' '), 'r') { |p| p.read }
-end
-
 $darcs_patches_in_git = nil
 
 class DarcsPatch
