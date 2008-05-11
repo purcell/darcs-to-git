@@ -140,12 +140,40 @@ class AuthorMap < Hash
   end
 end
 
+# -------------------------------------------------------------------------------
+# Storing a history of related darcs and git commits
+# -------------------------------------------------------------------------------
+
+class CommitHistory
+  def initialize(patch_file_name)
+    @patch_file_name = patch_file_name
+    @darcs_patches_in_git = YAML.load_file(patch_file_name) || {}
+  end
+
+  def record_git_commit(commit_id, identifier)
+    # using one file per darcs patch would be an incredible waste of space
+    # on my system one file takes up 4K even if only a few bytes are in it
+    # hence we just use a simple YAML hash
+    @darcs_patches_in_git[identifier] = commit_id
+    File.open(@patch_file_name, File::WRONLY|File::APPEND|File::CREAT) do |f|
+      f.puts "#{identifier}: #{commit_id}"
+    end
+  end
+
+  def find_git_commit(is_tag, git_tag_name, identifier)
+    return nil unless File.exists?(".git/refs/heads/master")  # empty repo
+    if is_tag then
+      output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
+        output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
+    else
+      @darcs_patches_in_git[identifier];
+    end
+  end
+end
 
 # -------------------------------------------------------------------------------
 # Reading darcs patches and applying them to a git repo
 # -------------------------------------------------------------------------------
-$darcs_patches_in_git = nil
-
 
 class DarcsPatch
   attr_accessor :source_repo, :author, :date, :inverted, :identifier, :name, :is_tag, :git_tag_name, :comment
@@ -188,7 +216,7 @@ class DarcsPatch
 
   # Return committish for corresponding patch in current git repo, or false/nil
   def id_in_git_repo
-    @git_commit ||= find_in_git_repo
+    @git_commit ||= COMMIT_HISTORY.find_git_commit(is_tag, git_tag_name, identifier)
   end
 
   def pull_and_apply
@@ -235,32 +263,7 @@ class DarcsPatch
       end
       # get full id of last commit and associate it with the patch id
       commit_id = output_of("git-log", "-n1").scan(/^commit ([a-z0-9]+$)/).flatten.first
-      record_git_commit(commit_id)
-    end
-  end
-
-  def find_in_git_repo
-    return nil unless File.exists?(".git/refs/heads/master")  # empty repo
-    if is_tag then
-      output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
-        output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
-    else
-      if $darcs_patches_in_git.nil? then
-        $darcs_patches_in_git = YAML.load_file("#{GIT_PATCHES}")
-      end
-      $darcs_patches_in_git[identifier];
-    end
-  end
-
-  def record_git_commit(commit_id)
-    # using one file per darcs patch would be an incredible waste of space
-    # on my system one file takes up 4K even if only a few bytes are in it
-    # hence we just use a simple YAML hash
-    unless $darcs_patches_in_git.nil?
-      $darcs_patches_in_git[identifier] = commit_id
-    end
-    File.open(GIT_PATCHES, File::WRONLY|File::APPEND|File::CREAT) do |f|
-      f.puts "#{identifier}: #{commit_id}"
+      COMMIT_HISTORY.record_git_commit(commit_id, identifier)
     end
   end
 
@@ -339,7 +342,7 @@ end
 unless File.directory?("_darcs")
   run("darcs", "init")
   run("git-init")
-  run("touch", "#{GIT_PATCHES}")
+  run("touch", "#{GIT_PATCHES}")  # TODO: CommitHistory should take care of this instead
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
   # TODO: migrate darcs borings into git excludes?
@@ -359,6 +362,9 @@ AUTHOR_MAP = if OPTIONS[:author_map] then
                AuthorMap.new
              end
 AUTHOR_MAP.default_email = OPTIONS[:default_email]
+
+COMMIT_HISTORY = CommitHistory.new(GIT_PATCHES)
+
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
 if OPTIONS[:list_authors] then
