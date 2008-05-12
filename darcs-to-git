@@ -72,14 +72,10 @@ end
 opts.parse!
 
 SRCREPO = ARGV[0]
-if SRCREPO.nil? or not FileTest.exists?(SRCREPO + '/_darcs') then
-  if SRCREPO.nil? then
-    puts opts.banner()
-    puts opts.summarize()
-  else
-    puts "Argument must be a valid local darcs repository"
-  end
-  exit(1)
+if SRCREPO.nil?
+  abort opts.banner() + opts.summarize()
+elsif !FileTest.exists?(SRCREPO + '/_darcs')
+  abort "#{SRCREPO} is not a valid local darcs repository"
 end
 
 
@@ -166,7 +162,7 @@ class CommitHistory
 
   def find_git_commit(is_tag, git_tag_name, identifier)
     return nil unless File.exists?(".git/refs/heads/master")  # empty repo
-    if is_tag then
+    if is_tag
       output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
         output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
@@ -280,7 +276,7 @@ class DarcsPatch
     # aren't well-defined, so we ignore the timezone name and instead
     # calculate the timezone offset ourselves by calculating the
     # difference between local time and UTC time.
-    if not utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ then
+    if not utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/
       raise "Wrong darcs date format"
     end
     utc_time = Time.utc($1,$2,$3,$4,$5,$6)
@@ -288,7 +284,7 @@ class DarcsPatch
     # everything except timezone name is fixed-length, if parsing
     # fails we just use UTC
     pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/
-    local_time = if local =~ pat then
+    local_time = if pat =~ local
                    Time.utc($6,$1,$2,$3,$4,$5)
                  else
                    utc_time
@@ -358,7 +354,7 @@ unless FileTest.exists?("#{GIT_PATCHES}")
   exit(1)
 end
 
-AUTHOR_MAP = if OPTIONS[:author_map] then
+AUTHOR_MAP = if OPTIONS[:author_map]
                AuthorMap.load(OPTIONS[:author_map])
              elsif File.exists?(DEFAULT_AUTHOR_MAP_FILE)
                AuthorMap.load(DEFAULT_AUTHOR_MAP_FILE)
@@ -371,7 +367,7 @@ COMMIT_HISTORY = CommitHistory.new(GIT_PATCHES)
 
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
-if OPTIONS[:list_authors] then
+if OPTIONS[:list_authors]
   extract_authors(patches)
   exit(0)
 end
@@ -382,37 +378,35 @@ while patch = patches.pop
   patches_to_pull.unshift(patch)
 end
 
-$run_consistency_check = true
-if OPTIONS[:num_patches] > 0 then
+want_consistency_check = true
+if OPTIONS[:num_patches] > 0
   # if we don't pull all patches, then the consistency check would
   # fail, so we simply skip it
-  $run_consistency_check = patches_to_pull.length <= OPTIONS[:num_patches]
+  want_consistency_check = patches_to_pull.length <= OPTIONS[:num_patches]
   # only pull specified number of patches
-  patches_to_pull = patches_to_pull[0, OPTIONS[:num_patches]]
+  patches_to_pull = patches_to_pull.first(OPTIONS[:num_patches])
 end
 
 patches_to_pull.each &:pull_and_apply
 
-def check_consistent(pulled)
-  ok = true
-  if $run_consistency_check then
-    puts "Checking for consistency ..."
-    system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
-    ok = $? == 0
-  end
-  if ok then
-    if pulled.length == 0 then
-      puts "\nNothing to pull."
-    else
-      puts "\nPulled #{pulled.length} patch#{pulled.length != 1 ? "es" : ""}."
-      puts "\nDarcs import successful!  You may now want to run `git gc' to
+
+pulled = patches_to_pull.size
+if pulled == 0
+  puts "\nNothing to pull."
+else
+  puts "\nPulled #{pulled} patch#{"es" unless pulled == 1}."
+  puts "\nDarcs import successful!  You may now want to run `git gc' to
 improve space usage the git repo"
-    end
-  else
-    puts "!!! There were differences!  See diff above for details."
-    puts "!!! It maybe that the source repository was dirty."
-    puts "!!! Run \"cd #{SRCREPO} && darcs whatsnew -sl\" to check."
-  end
 end
 
-check_consistent(patches_to_pull)
+if want_consistency_check
+  puts "Comparing final state with source repo..."
+  system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
+  if $? != 0
+    abort <<-end_msg
+!!! There were differences!  See diff above for details.
+!!! It may be that the source repository was dirty.
+!!! Run "cd #{SRCREPO} && darcs whatsnew -sl" to check.
+    end_msg
+  end
+end
