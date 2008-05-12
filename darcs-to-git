@@ -27,7 +27,7 @@ DEFAULT_AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
 OPTIONS = { :default_email => nil,
             :list_authors  => false,
             :author_map    => nil,
-            :num_patches   => 0 }
+            :num_patches   => nil }
 opts = OptionParser.new do |opts|
   opts.banner = <<-end_usage
 Creates git repositories from darcs repositories
@@ -66,6 +66,7 @@ OPTIONS
   end
   opts.on('--patches [N]', OptionParser::DecimalInteger,
           "Only pull N patches.") do |n|
+    abort opts.to_s unless n >= 0
     OPTIONS[:num_patches] = n
   end
   opts.on('-h', '--help', "Show this message") do
@@ -388,23 +389,19 @@ if OPTIONS[:list_authors]
   exit(0)
 end
 
-patches_to_pull = []
+patches_available = []
 while patch = patches.pop
   next if patch.id_in_git_repo
-  patches_to_pull.unshift(patch)
+  patches_available.unshift(patch)
 end
 
-want_consistency_check = true
-if OPTIONS[:num_patches] > 0
-  # if we don't pull all patches, then the consistency check would
-  # fail, so we simply skip it
-  want_consistency_check = patches_to_pull.length <= OPTIONS[:num_patches]
-  # only pull specified number of patches
-  patches_to_pull = patches_to_pull.first(OPTIONS[:num_patches])
-end
+patches_to_pull = if OPTIONS[:num_patches]
+                    patches_available.first(OPTIONS[:num_patches])
+                  else
+                    patches_available
+                  end
 
 patches_to_pull.each &:pull_and_apply
-
 
 pulled = patches_to_pull.size
 if pulled == 0
@@ -415,7 +412,14 @@ else
 improve space usage the git repo"
 end
 
-if want_consistency_check
+
+# -------------------------------------------------------------------------------
+# Post-flight checks
+# -------------------------------------------------------------------------------
+
+# if we didn't pull all patches, then the consistency check would
+# fail, so we simply skip it
+if patches_to_pull.size == patches_available.size
   puts "Comparing final state with source repo..."
   system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
   if $? != 0
