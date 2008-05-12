@@ -242,22 +242,29 @@ class DarcsPatch
 
     pull
     system("git-status")
-    apply_to_git_repo
+    commit_to_git_repo
   end
 
   private
 
   def pull
+    unless darcs_reports_clean_repo?
+      raise "Darcs reports dirty repo before pulling #{identifier}; confused, so aborting"
+    end
     run("darcs", "pull", "--all", "--quiet",
         "--match", "hash #{identifier}",
         "--set-scripts-executable", source_repo)
-    unless `darcs whatsnew -sl` =~ /^No changes!$/
+    unless darcs_reports_clean_repo?
       puts "Darcs reports dirty directory: assuming conflict that is fixed by a later patch... reverting"
       run("darcs revert --all")
     end
   end
 
-  def apply_to_git_repo
+  def darcs_reports_clean_repo?
+    `darcs whatsnew -sl` =~ /^No changes!$/
+  end
+
+  def commit_to_git_repo
     ENV['GIT_AUTHOR_NAME'] = ENV['GIT_COMMITTER_NAME'] = git_author_name
     ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = git_author_email
     ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
