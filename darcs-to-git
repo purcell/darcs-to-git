@@ -161,13 +161,19 @@ class CommitHistory
   end
 
   def find_git_commit(is_tag, git_tag_name, identifier)
-    return nil unless File.exists?(".git/refs/heads/master")  # empty repo
+    return nil if empty_repo?
     if is_tag
       output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
         output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
       @darcs_patches_in_git[identifier];
     end
+  end
+
+  private
+
+  def empty_repo?
+    !system("git rev-parse --verify HEAD >/dev/null 2>&1")
   end
 end
 
