@@ -68,12 +68,15 @@ OPTIONS
           "Only pull N patches.") do |n|
     OPTIONS[:num_patches] = n
   end
+  opts.on('-h', '--help', "Show this message") do
+    abort opts.to_s
+  end
 end
 opts.parse!
 
 SRCREPO = ARGV[0]
 if SRCREPO.nil?
-  abort opts.banner() + opts.summarize()
+  abort opts.to_s
 elsif !FileTest.exists?(SRCREPO + '/_darcs')
   abort "#{SRCREPO} is not a valid local darcs repository"
 end
