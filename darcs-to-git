@@ -151,7 +151,15 @@ end
 class CommitHistory
   def initialize(patch_file_name)
     @patch_file_name = patch_file_name
-    @darcs_patches_in_git = YAML.load_file(patch_file_name) || {}
+    @darcs_patches_in_git = {}
+    if File.exists?(patch_file_name)
+      @darcs_patches_in_git = YAML.load_file(patch_file_name)
+      unless @darcs_patches_in_git.is_a?(Hash)
+        raise "yaml hash not found in #{patch_file_name}"
+      end
+    else
+      fill_from_darcs_hash_comments
+    end
   end
 
   def record_git_commit(commit_id, identifier)
@@ -159,8 +167,8 @@ class CommitHistory
     # on my system one file takes up 4K even if only a few bytes are in it
     # hence we just use a simple YAML hash
     @darcs_patches_in_git[identifier] = commit_id
-    File.open(@patch_file_name, File::WRONLY|File::APPEND|File::CREAT) do |f|
-      f.puts "#{identifier}: #{commit_id}"
+    File.open(@patch_file_name, 'w') do |f|
+      YAML.dump(@darcs_patches_in_git, f)
     end
   end
 
@@ -178,6 +186,14 @@ class CommitHistory
 
   def empty_repo?
     !system("git rev-parse --verify HEAD >/dev/null 2>&1")
+  end
+
+  def fill_from_darcs_hash_comments
+    return if empty_repo?
+    Array(output_of("git-log", "--grep=darcs-hash:").split(/^commit /m)[1..-1]).each do |entry|
+      commit_id, identifier = entry.scan(/^([a-z0-9]+$).*darcs-hash:(.*?)$/sm).flatten
+      record_git_commit(commit_id, identifier)
+    end
   end
 end
 
@@ -357,19 +373,17 @@ end
 # -------------------------------------------------------------------------------
 
 unless File.directory?("_darcs")
+  puts "Initialising the working area."
   run("darcs", "init")
   run("git-init")
-  run("touch", "#{GIT_PATCHES}")  # TODO: CommitHistory should take care of this instead
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
   # TODO: migrate darcs borings into git excludes?
 end
 
-unless FileTest.exists?("#{GIT_PATCHES}")
-  # XXX: convert to new format
-  STDERR.puts "It seems your repo has been created with an old version of #{$0}."
-  exit(1)
-end
+
+COMMIT_HISTORY = CommitHistory.new(GIT_PATCHES)
+
 
 AUTHOR_MAP = if OPTIONS[:author_map]
                AuthorMap.load(OPTIONS[:author_map])
@@ -379,8 +393,6 @@ AUTHOR_MAP = if OPTIONS[:author_map]
                AuthorMap.new
              end
 AUTHOR_MAP.default_email = OPTIONS[:default_email]
-
-COMMIT_HISTORY = CommitHistory.new(GIT_PATCHES)
 
 
 patches = DarcsPatch.read_from_repo(SRCREPO)
