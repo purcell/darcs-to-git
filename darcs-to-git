@@ -133,9 +133,10 @@ class AuthorMap < Hash
   private
 
   def name_and_email(author)
-    if (author =~ /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/)
+    case author
+    when /^\s*(\S.*?)\s*\<(\S+@\S+?)\>\s*$/
       [$1, $2]
-    elsif (author =~ /^\s*\<?(\S+@\S+?)\>?\s*$/)
+    when /^\s*\<?(\S+@\S+?)\>?\s*$/
       email = $1
       [email.split('@').first, email]
     else
