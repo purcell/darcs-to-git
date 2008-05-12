@@ -7,6 +7,7 @@
 # XXX: make backwards compatible
 # TODO: import parallel darcs repos as git branches, identifying branch points
 # TODO: use default repo if none was supplied
+# TODO: handle *-darcs-backupN files?
 
 require 'ostruct'
 require 'rexml/document'
@@ -27,6 +28,7 @@ DEFAULT_AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
 OPTIONS = { :default_email => nil,
             :list_authors  => false,
             :author_map    => nil,
+            :clean_commit_messages => false,
             :num_patches   => nil }
 opts = OptionParser.new do |opts|
   opts.banner = <<-end_usage
@@ -68,6 +70,10 @@ OPTIONS
           "Only pull N patches.") do |n|
     abort opts.to_s unless n >= 0
     OPTIONS[:num_patches] = n
+  end
+  opts.on('--clean-commit-messages',
+          "Don't note darcs hashes in git commit messages (not recommended)") do |n|
+    OPTIONS[:clean_commit_messages] = true
   end
   opts.on('-h', '--help', "Show this message") do
     abort opts.to_s
@@ -159,6 +165,8 @@ class CommitHistory
         raise "yaml hash not found in #{patch_file_name}"
       end
     else
+      # TODO: consider doing this unconditionally, since that
+      # might allow merging between repositories created with darcs-to-git
       fill_from_darcs_hash_comments
     end
   end
@@ -227,9 +235,9 @@ class DarcsPatch
 
   def git_commit_message
     [ ((inverted ? "UNDO: #{name}" : name) unless name =~ /^\[\w+ @ \d+\]/),
-      comment
+      comment,
+      ("darcs-hash:#{identifier}" unless OPTIONS[:clean_commit_messages])
     ].compact.join("\n\n")
-    #  "darcs-hash:#{identifier}" ].compact.join("\n\n")
   end
 
   def self.read_from_repo(repo)
