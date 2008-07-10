@@ -285,10 +285,14 @@ class DarcsPatch
       run("darcs revert --all")
       run("find . -name '*-darcs-backup0'|xargs rm")  # darcs2 creates these
     end
+    unless darcs_reports_clean_repo?
+        system("darcs whatsnew -sl")
+        raise "Failed to clean repo, see above"
+    end
   end
 
   def darcs_reports_clean_repo?
-    `darcs whatsnew -sl` =~ /^No changes!$/
+    `darcs whatsnew -sl | egrep -v '^a (\./)?\.git(/|$)'` =~ /^(No changes!)?$/
   end
 
   def commit_to_git_repo
