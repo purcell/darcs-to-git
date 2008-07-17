@@ -283,7 +283,7 @@ class DarcsPatch
     unless darcs_reports_clean_repo?
       puts "Darcs reports dirty directory: assuming conflict that is fixed by a later patch... reverting"
       run("darcs revert --all")
-      run("find . -name '*-darcs-backup0'|xargs rm")  # darcs2 creates these
+      run("find . -name '*-darcs-backup0'|xargs rm -f")  # darcs2 creates these
     end
     unless darcs_reports_clean_repo?
         system("darcs whatsnew -sl")
