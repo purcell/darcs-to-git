@@ -299,6 +299,7 @@ class DarcsPatch
     ENV['GIT_AUTHOR_NAME'] = ENV['GIT_COMMITTER_NAME'] = git_author_name
     ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = git_author_email
     ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
+    ENV['GIT_PAGER'] = "cat" # so that pager of git-log doesn't halt conversion
     if is_tag
       run("git-tag", "-a", "-m", git_commit_message, git_tag_name)
     else
