@@ -347,7 +347,7 @@ class DarcsPatch
   end
 
   def git_ls_files(wanted)
-    output_of(*["git-ls-files", "-t", "-o", "-m", "-d", "-X", ".git/info/exclude"]).scan(/^(.?) (.*?)$/m).map do |code, name|
+    output_of(*["git-ls-files", "-t", "-o", "-m", "-d", "-z", "-X", ".git/info/exclude"]).scan(/(.?) (.*?)\0/m).map do |code, name|
       name if wanted.include?(code)
     end.compact
   end
