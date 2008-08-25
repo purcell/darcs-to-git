@@ -184,8 +184,8 @@ class CommitHistory
   def find_git_commit(is_tag, git_tag_name, identifier)
     return nil if empty_repo?
     if is_tag
-      output_of("git-tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
-        output_of("git-rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
+      output_of("git", "tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
+        output_of("git", "rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
       @darcs_patches_in_git[identifier];
     end
@@ -199,7 +199,7 @@ class CommitHistory
 
   def fill_from_darcs_hash_comments
     return if empty_repo?
-    Array(output_of("git-log", "--grep=darcs-hash:").split(/^commit /m)[1..-1]).each do |entry|
+    Array(output_of("git", "log", "--grep=darcs-hash:").split(/^commit /m)[1..-1]).each do |entry|
       commit_id, identifier = entry.scan(/^([a-z0-9]+$).*darcs-hash:(.*?)$/sm).flatten
       record_git_commit(commit_id, identifier)
     end
@@ -267,7 +267,7 @@ class DarcsPatch
     end
 
     pull
-    system("git-status")
+    system("git", "status")
     commit_to_git_repo
   end
 
@@ -301,16 +301,16 @@ class DarcsPatch
     ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
     ENV['GIT_PAGER'] = "cat" # so that pager of git-log doesn't halt conversion
     if is_tag
-      run("git-tag", "-a", "-m", git_commit_message, git_tag_name)
+      run("git", "tag", "-a", "-m", git_commit_message, git_tag_name)
     else
       if (new_files = git_new_files).any?
-        run(*(["git-add"] + new_files))
+        run(*(["git", "add"] + new_files))
       end
       if git_changed_files.any? || new_files.any?
-        run("git-commit", "-a", "-m", git_commit_message)
+        run("git", "commit", "-a", "-m", git_commit_message)
       end
       # get full id of last commit and associate it with the patch id
-      commit_id = output_of("git-log", "-n1").scan(/^commit ([a-z0-9]+$)/).flatten.first
+      commit_id = output_of("git", "log", "-n1").scan(/^commit ([a-z0-9]+$)/).flatten.first
       COMMIT_HISTORY.record_git_commit(commit_id, identifier)
     end
   end
@@ -347,7 +347,7 @@ class DarcsPatch
   end
 
   def git_ls_files(wanted)
-    output_of(*["git-ls-files", "-t", "-o", "-m", "-d", "-z", "-X", ".git/info/exclude"]).scan(/(.?) (.*?)\0/m).map do |code, name|
+    output_of(*["git", "ls-files", "-t", "-o", "-m", "-d", "-z", "-X", ".git/info/exclude"]).scan(/(.?) (.*?)\0/m).map do |code, name|
       name if wanted.include?(code)
     end.compact
   end
@@ -390,7 +390,7 @@ end
 unless File.directory?("_darcs")
   puts "Initialising the working area."
   run("darcs", "init")
-  run("git-init")
+  run("git", "init")
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
   # TODO: migrate darcs borings into git excludes?
