@@ -376,6 +376,15 @@ end
 def darcs_version
   output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
 end
+
+def darcs2_repo?(repo)
+  begin
+    output_of("darcs", "show", "repo", "--repodir=#{repo}") =~ /Format:.*darcs-2/ 
+  rescue # darcs1 does not have a "show" command, so we get an exception
+    false 
+  end
+end
+
 class Array; include Comparable; end
 
 unless darcs_version > [1, 0, 7]
@@ -389,7 +398,11 @@ end
 
 unless File.directory?("_darcs")
   puts "Initialising the working area."
-  run("darcs", "init")
+
+  darcs_init = %w(darcs init)
+  darcs_init.push("--darcs-2") if darcs2_repo?(SRCREPO)
+  run(*darcs_init)
+
   run("git", "init")
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
   File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
