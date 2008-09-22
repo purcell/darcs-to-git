@@ -184,7 +184,7 @@ class CommitHistory
   def find_git_commit(is_tag, git_tag_name, identifier)
     return nil if empty_repo?
     if is_tag
-      output_of("git", "tag", "-l").split(/\r?\n/).include?(git_tag_name) &&
+      (output_of("git", "tag", "-l") rescue "").split(/\r?\n/).include?(git_tag_name) &&
         output_of("git", "rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
     else
       @darcs_patches_in_git[identifier];
