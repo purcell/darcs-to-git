@@ -373,21 +373,19 @@ end
 # Pre-flight checks
 # -------------------------------------------------------------------------------
 
-def darcs_version
-  output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
-end
+DARCS_VERSION = output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
 
 def darcs2_repo?(repo)
   begin
-    output_of("darcs", "show", "repo", "--repodir=#{repo}") =~ /Format:.*darcs-2/ 
+    output_of("darcs", "show", "repo", "--repodir=#{repo}") =~ /Format:.*darcs-2/
   rescue # darcs1 does not have a "show" command, so we get an exception
-    false 
+    false
   end
 end
 
 class Array; include Comparable; end
 
-unless darcs_version > [1, 0, 7]
+unless DARCS_VERSION > [1, 0, 7]
   STDERR.write("WARNING: your darcs appears to be old, and may not work with this script\n")
 end
 
@@ -400,7 +398,11 @@ unless File.directory?("_darcs")
   puts "Initialising the working area."
 
   darcs_init = %w(darcs init)
-  darcs_init.push("--darcs-2") if darcs2_repo?(SRCREPO)
+  if darcs2_repo?(SRCREPO)
+    darcs_init << "--darcs-2"
+  elsif DARCS_VERSION >= [2, 0, 0]
+    darcs_init << "--old-fashioned-inventory"
+  end
   run(*darcs_init)
 
   run("git", "init")
