@@ -75,6 +75,19 @@ OPTIONS
           "Don't note darcs hashes in git commit messages (not recommended)") do |n|
     OPTIONS[:clean_commit_messages] = true
   end
+  opts.on('--version', "Output version information and exit") do
+    puts <<-EOF
+darcs-to-git 0.1
+
+Copyright (c) 2009 Steve Purcell, http://www.sanityinc.com/
+
+License MIT: <http://www.opensource.org/licenses/mit-license.php>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+EOF
+    exit
+  end
+
   opts.on('-h', '--help', "Show this message") do
     puts opts.to_s
     exit
