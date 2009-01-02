@@ -76,7 +76,8 @@ OPTIONS
     OPTIONS[:clean_commit_messages] = true
   end
   opts.on('-h', '--help', "Show this message") do
-    abort opts.to_s
+    puts opts.to_s
+    exit
   end
 end
 opts.parse!
