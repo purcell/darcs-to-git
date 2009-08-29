@@ -13,6 +13,7 @@ require 'ostruct'
 require 'rexml/document'
 require 'optparse'
 require 'yaml'
+require 'pathname'
 
 # Explicitly setting a time zone would cause darcs to only output in
 # that timezone hence we couldn't get the actual patch TZ
@@ -421,7 +422,25 @@ unless File.directory?("_darcs")
 
   run("git", "init")
   File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
-  File.open("_darcs/prefs/boring", "a") { |f| f.write("\\.git$\n\\.DS_Store$\n") }
+
+  # Patterns to exclude
+  git_borings = [] << '(^|/)\.git($|/)' << '(^|/)\.DS_Store$'
+  existing_borings = []
+
+  # Check existing global boring patterns
+  global_darcs_dir = Pathname.new("#{ENV['HOME']}/.darcs")
+  global_boring_file = global_darcs_dir + 'boring'
+  if global_boring_file.exist?
+    existing_borings = File.open(global_boring_file, 'r') {|f| f.readlines}.map {|l| l.chomp }
+  else
+    global_darcs_dir.mkdir unless global_darcs_dir.directory?
+  end
+
+  # Add boring patterns to global boring file
+  File.open(global_boring_file, 'a') do |f|
+    (git_borings - existing_borings).each {|b| f.puts b }
+  end
+
   # TODO: migrate darcs borings into git excludes?
 end
 
