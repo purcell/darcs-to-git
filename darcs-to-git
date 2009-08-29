@@ -317,7 +317,7 @@ class DarcsPatch
       run("git", "tag", "-a", "-m", git_commit_message, git_tag_name)
     else
       if (new_files = git_new_files).any?
-        run(*(["git", "add"] + new_files))
+        run(*(["git", "add", "-f"] + new_files))
       end
       if git_changed_files.any? || new_files.any?
         run("git", "commit", "-a", "-m", git_commit_message)
