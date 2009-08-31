@@ -30,7 +30,7 @@ Options
    email address from the darcs patch.  In cases this is not possible,
    a default will be picked by Git.  This is usually the one in
    `~/.gitconfig`.  This option allows you to specify another default
-   (without having to to modify `~/.gitconfig.)
+   (without having to to modify `~/.gitconfig.`)
 
  * `--list-authors`: Outputs a list of authors in the source
    repository and how they will appear in the git repository and
