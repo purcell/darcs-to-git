@@ -1,5 +1,6 @@
 darcs-to-git
-    written by Steve Purcell, some improvements by Thomas Schilling
+    written by Steve Purcell, some improvements by Thomas Schilling,
+    Jonathon Mah
 
 Converts a Darcs repository into a Git repository.  Supports
 incremental updates, i.e., you can pull new patches from the source
