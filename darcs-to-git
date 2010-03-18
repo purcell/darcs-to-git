@@ -255,10 +255,9 @@ class DarcsPatch
   end
 
   def git_commit_message
-    [ ((inverted ? "UNDO: #{name}" : name) unless name =~ /^\[\w+ @ \d+\]/),
-      comment,
-      ("darcs-hash:#{identifier}" unless OPTIONS[:clean_commit_messages])
-    ].compact.join("\n\n")
+    patch_name = ((inverted ? "UNDO: #{name}" : name) unless name =~ /^\[\w+ @ \d+\]/)
+    OPTIONS[:clean_commit_messages] ? [ patch_name, comment && comment.gsub(/^Ignore-this:.*$/, '')].compact.join("\n") \
+                                    : [ patch_name, comment, "darcs-hash:#{identifier}" ].compact.join("\n\n")
   end
 
   def self.read_from_repo(repo)
