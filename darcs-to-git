@@ -312,7 +312,7 @@ class DarcsPatch
   end
 
   def darcs_reports_clean_repo?
-    `darcs whatsnew -sl | egrep -v '^a (\./)?\.git(/|$)'` =~ /^(No changes!)?$/
+    `darcs whatsnew -sl | egrep -v '^a (\./)?\.git(/|$)' | egrep -v '^a ./darcs_testing_for_nfs/$'` =~ /^(No changes!)?$/
   end
 
   def commit_to_git_repo
