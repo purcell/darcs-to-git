@@ -27,7 +27,8 @@ DEFAULT_AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
 # Usage info and argument parsing
 # -------------------------------------------------------------------------------
 
-OPTIONS = { :default_email => nil,
+OPTIONS = { :default_author => nil,
+            :default_email => nil,
             :list_authors  => false,
             :author_map    => nil,
             :clean_commit_messages => false,
@@ -56,6 +57,10 @@ If you really need to, you can manually identify the patch and use
 OPTIONS
 
   end_usage
+  opts.on('--default-author NAME',
+          "Set the author name used when darcs patch has no explicit author") do |m|
+    OPTIONS[:default_author] = m
+  end
   opts.on('--default-email ADDRESS',
           "Set the email address used when no explicit address is given") do |m|
     OPTIONS[:default_email] = m
@@ -147,6 +152,7 @@ end
 # -------------------------------------------------------------------------------
 class AuthorMap < Hash
   attr_accessor :default_email
+  attr_accessor :default_author
 
   def self.load(filename)
     new.merge(YAML.load_file(filename))
@@ -166,6 +172,8 @@ class AuthorMap < Hash
     when /^\s*\<?(\S+@\S+?)\>?\s*$/
       email = $1
       [email.split('@').first, email]
+    when ''
+      [default_author, default_email]
     else
       [author, default_email]
     end
@@ -460,6 +468,7 @@ AUTHOR_MAP = if OPTIONS[:author_map]
              else
                AuthorMap.new
              end
+AUTHOR_MAP.default_author = OPTIONS[:default_author]
 AUTHOR_MAP.default_email = OPTIONS[:default_email]
 
 
