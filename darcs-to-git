@@ -27,8 +27,8 @@ DEFAULT_AUTHOR_MAP_FILE = ".git/darcs_author_substitutions"
 # Usage info and argument parsing
 # -------------------------------------------------------------------------------
 
-OPTIONS = { :default_author => nil,
-            :default_email => nil,
+OPTIONS = { :default_author => 'none',
+            :default_email => 'none',
             :list_authors  => false,
             :author_map    => nil,
             :clean_commit_messages => false,
