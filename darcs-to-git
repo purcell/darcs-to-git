@@ -279,7 +279,7 @@ class DarcsPatch
 
   # Return committish for corresponding patch in current git repo, or false/nil
   def id_in_git_repo
-    @git_commit ||= COMMIT_HISTORY.find_git_commit(is_tag, git_tag_name, identifier)
+    COMMIT_HISTORY.find_git_commit(is_tag, git_tag_name, identifier)
   end
 
   def pull_and_apply
@@ -288,11 +288,6 @@ class DarcsPatch
     puts "DATE  : #{date}"
     puts "AUTHOR: #{author} => #{git_author_name} <#{git_author_email}>"
     puts "=" * 80
-
-    if id_in_git_repo
-      puts "Already imported to git as #{id_in_git_repo}"
-      return
-    end
 
     pull
     system("git", "status")
