@@ -271,7 +271,7 @@ class DarcsPatch
   def self.read_from_repo(repo)
     REXML::Document.new(output_of("darcs", "changes", "--reverse",
                                   "--repodir=#{repo}", "--xml",
-                                  "--summary")).
+                                  "--no-summary")).
       get_elements('changelog/patch').map do |p|
       DarcsPatch.new(repo, p)
     end
