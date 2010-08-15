@@ -130,7 +130,7 @@ end
 
 def output_of(*args)
   puts "Running: #{args.inspect}"
-  output = IO.popen(args.map {|a| "'#{a}'"}.join(' '), 'r') { |p| p.read }
+  output = IO.popen(args.map {|a| "\"#{a}\""}.join(' '), 'r') { |p| p.read }
   if $?.exitstatus == 0
     return validate_utf8(output)
   else
