@@ -228,7 +228,7 @@ class CommitHistory
 
   def fill_from_darcs_hash_comments
     return if empty_repo?
-    Array(output_of("git", "log", "--grep=darcs-hash:").split(/^commit /m)[1..-1]).each do |entry|
+    Array(output_of("git", "log", "--grep=darcs-hash:", "--nocolor").split(/^commit /m)[1..-1]).each do |entry|
       commit_id, identifier = entry.scan(/^([a-z0-9]+$).*darcs-hash:(.*?)$/sm).flatten
       record_git_commit(commit_id, identifier)
     end
@@ -337,7 +337,7 @@ class DarcsPatch
         run("git", "commit", "-a", "-m", git_commit_message)
       end
       # get full id of last commit and associate it with the patch id
-      commit_id = output_of("git", "log", "-n1").scan(/^commit ([a-z0-9]+$)/).flatten.first
+      commit_id = output_of("git", "log", "-n1", "--no-color").scan(/^commit ([a-z0-9]+$)/).flatten.first
       COMMIT_HISTORY.record_git_commit(commit_id, identifier)
     end
   end
