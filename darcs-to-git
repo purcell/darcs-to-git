@@ -31,6 +31,7 @@ OPTIONS = { :default_author => 'none',
             :default_email => 'none',
             :list_authors  => false,
             :author_map    => nil,
+            :verbose       => true,
             :do_checks     => true,
             :clean_commit_messages => false,
             :num_patches   => nil }
@@ -78,6 +79,10 @@ OPTIONS
           "Only pull N patches.") do |n|
     abort opts.to_s unless n >= 0
     OPTIONS[:num_patches] = n
+  end
+  opts.on('--no-verbose',
+          "Don't show status update after every imported patch (bit faster) ") do |n|
+    OPTIONS[:verbose] = false
   end
   opts.on('--no-checks',
           "Don't check repository consistency after every imported patch, only at start and finish of pull (faster) ") do |n|
@@ -294,7 +299,7 @@ class DarcsPatch
     puts "=" * 80
 
     pull
-    system("git", "status")
+    puts output_of("git", "status")
     commit_to_git_repo
   end
 
@@ -333,7 +338,7 @@ class DarcsPatch
         run(*(["git", "add", "-f"] + new_files))
       end
       if git_changed_files.any? || new_files.any?
-        run("git", "commit", "-a", "-m", git_commit_message)
+        output_of("git", "commit", "-a", "-m", git_commit_message)
       end
       # get full id of last commit and associate it with the patch id
       commit_id = output_of("git", "log", "-n1", "--no-color").scan(/^commit ([a-z0-9]+$)/).flatten.first
@@ -493,7 +498,20 @@ patches_to_pull = if OPTIONS[:num_patches]
                     patches_available
                   end
 
-patches_to_pull.each &:pull_and_apply
+original_stdout = $stdout
+unless OPTIONS[:verbose]
+  # Capture all writes to stdout.
+  $stdout = StringIO.new
+end
+
+patches_to_pull.each_with_index { |p, i|
+  if i % 10 == 0
+    original_stdout.puts "progress: #{i} / #{patches_to_pull.size}"
+  end
+  p.pull_and_apply
+}
+
+$stdout = original_stdout
 
 pulled = patches_to_pull.size
 if pulled == 0
