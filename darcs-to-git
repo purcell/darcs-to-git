@@ -520,7 +520,7 @@ if pulled == 0
 else
   puts "\nPulled #{pulled} patch#{"es" unless pulled == 1}."
   puts "\nDarcs import successful!  You may now want to run `git gc' to
-improve space usage the git repo"
+optimize space usage of the git repo"
 end
 
 
