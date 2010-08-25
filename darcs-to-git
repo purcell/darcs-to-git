@@ -1,7 +1,18 @@
 #!/usr/bin/env ruby
 ##
 ## Author: Steve Purcell, http://www.sanityinc.com/
-## Obtain the latest version of this software here: http://git.sanityinc.com/
+##
+## Further info:
+##   http://www.sanityinc.com/articles/converting-darcs-repositories-to-git
+##
+## Obtain the latest version of this software here:
+##
+##   http://github.com/purcell/darcs-to-git
+##   http://git.sanityinc.com/
+##
+## Please submit bug reports and patches via Github (preferred), or by
+## email to the author.
+##
 ##
 
 # XXX: make backwards compatible
