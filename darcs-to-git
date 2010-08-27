@@ -26,7 +26,7 @@ require 'optparse'
 require 'yaml'
 require 'pathname'
 require 'iconv'
-require 'Shellwords'
+require 'shellwords'
 
 # Explicitly setting a time zone would cause darcs to only output in
 # that timezone hence we couldn't get the actual patch TZ
