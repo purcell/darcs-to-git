@@ -311,7 +311,6 @@ class DarcsPatch
     puts "=" * 80
 
     pull
-    puts output_of("git", "status")
     commit_to_git_repo
   end
 
