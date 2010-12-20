@@ -416,7 +416,7 @@ end
 # Pre-flight checks
 # -------------------------------------------------------------------------------
 
-DARCS_VERSION = output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)\.(\d+)/).flatten.map {|v| v.to_i}
+DARCS_VERSION = output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)(?:\.(\d+))?/).flatten.map {|v| v.to_i}
 
 def darcs2_repo?(repo)
   begin
