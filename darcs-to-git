@@ -165,7 +165,7 @@ class String
     # darcs uses '[_\hh_]' to quote non-ascii characters where 'h' is
     # a hexadecimal.  We translate this to '=hh' and use ruby's unpack
     # to do replace this with the proper byte.
-    gsub(/\[\_\\(..)\_\]/) { |x| "=#{$1}" }.unpack("M*")[0]
+    gsub(/\[\_\\(..)\_\]/) { |x| "=#{$1}".unpack("M*")[0] }
   end
 end
 
