@@ -357,6 +357,10 @@ class DarcsPatch
       commit_id = output_of("git", "log", "-n1", "--no-color").scan(/^commit ([a-z0-9]+$)/).flatten.first
       COMMIT_HISTORY.record_git_commit(commit_id, identifier)
     end
+    rescue RuntimeError => error
+      STDERR.write "An error occurred: " + error + "\n"
+      STDERR.write "Do you want to continue ? (y/N): "
+      exit unless (STDIN.getc.chr.downcase == "y")
   end
 
   def darcs_date_to_git_date(utc,local)
