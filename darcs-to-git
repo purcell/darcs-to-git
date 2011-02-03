@@ -65,8 +65,8 @@ in the source darcs repo into commits in that repository.
 Thereafter, incremental patch conversion from the same source repo is
 possible by repeating step 2.
 
-NOTE: In case of multiple tags, only the first one will be applied.
-If you really need to, you can manually identify the patch and use 
+NOTE: In case of duplicate tags, the latest will take precedence.
+If you really need to, you can manually identify the patch and use
 \"git tag -f <tagname> <sha1-of-commit-before-tagging>\".
 
 OPTIONS
@@ -345,7 +345,7 @@ class DarcsPatch
     ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = git_author_email
     ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
     if is_tag
-      run("git", "tag", "-a", "-m", git_commit_message, git_tag_name)
+      run("git", "tag", "-a", "-f", "-m", git_commit_message, git_tag_name)
     else
       if (new_files = git_new_files).any?
         run(*(["git", "add", "-f"] + new_files))
