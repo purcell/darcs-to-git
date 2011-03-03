@@ -561,6 +561,8 @@ if patches_to_pull.size == patches_available.size
 !!! It may be that the source repository was dirty.
 !!! Run "cd #{SRCREPO} && darcs whatsnew -sl" to check.
       end_msg
+    else
+      puts "Contents match."
     end
   else
     puts "Warning: source repo is not local, so we can't compare final git state with latest darcs contents."
