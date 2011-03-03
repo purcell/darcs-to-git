@@ -29,6 +29,7 @@ require 'pathname'
 require 'iconv'
 require 'shellwords'
 require 'fileutils'
+require 'open-uri'
 
 # Explicitly setting a time zone would cause darcs to only output in
 # that timezone hence we couldn't get the actual patch TZ
@@ -53,18 +54,22 @@ opts = OptionParser.new do |opts|
   opts.banner = <<-end_usage
 Creates git repositories from darcs repositories
 
-  usage: darcs-to-git DARCSREPODIR [options]
+  usage: darcs-to-git DARCSREPO [options]
 
 
 1. Create an *empty* directory that will become the new git repository
 2. From inside that directory, run this program, passing the location
-   of the local source darcs repo as a parameter
+   of the source darcs repo as a parameter
 
 The program will git-init the empty directory, and migrate all patches
 in the source darcs repo into commits in that repository.
 
 Thereafter, incremental patch conversion from the same source repo is
 possible by repeating step 2.
+
+If DARCSREPO is local, its contents will be compared with those of the
+git repo after conversion finishes, as a sanity check for the
+conversion process.
 
 NOTE: In case of duplicate tags, the latest will take precedence.
 If you really need to, you can manually identify the patch and use
@@ -129,8 +134,6 @@ opts.parse!
 SRCREPO = ARGV[0]
 if SRCREPO.nil?
   abort opts.to_s
-elsif !FileTest.exists?(SRCREPO + '/_darcs')
-  abort "#{SRCREPO} is not a valid local darcs repository"
 end
 
 
@@ -293,7 +296,7 @@ class DarcsPatch
 
   def self.read_from_repo(repo)
     REXML::Document.new(output_of("darcs", "changes", "--reverse",
-                                  "--repodir=#{repo}", "--xml",
+                                  "--repo=#{repo}", "--xml",
                                   "--no-summary")).
       get_elements('changelog/patch').map do |p|
       DarcsPatch.new(repo, p)
@@ -422,9 +425,13 @@ DARCS_VERSION = output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)(?:\.(\d+))?/).flatte
 
 def darcs2_repo?(repo)
   begin
-    output_of("darcs", "show", "repo", "--repodir=#{repo}") =~ /Format:.*darcs-2/
-  rescue # darcs1 does not have a "show" command, so we get an exception
-    false
+    return ! File.read(repo[/^(.*)\/?$/] + "/_darcs/format") =~ /darcs-1.x/
+  rescue
+    begin
+      output_of("darcs", "show", "repo", "--repo=#{repo}") =~ /Format:.*darcs-2/
+    rescue # darcs1 does not have a "show" command, so we get an exception
+      false
+    end
   end
 end
 
@@ -545,13 +552,17 @@ end
 # if we didn't pull all patches, then the consistency check would
 # fail, so we simply skip it
 if patches_to_pull.size == patches_available.size
-  puts "Comparing final state with source repo..."
-  system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
-  if $? != 0
-    abort <<-end_msg
+  if File.exist?(SRCREPO)
+    puts "Comparing final state with source repo..."
+    system("diff", "-ur", "-x", "_darcs", "-x", ".git", ".", SRCREPO)
+    if $? != 0
+      abort <<-end_msg
 !!! There were differences!  See diff above for details.
 !!! It may be that the source repository was dirty.
 !!! Run "cd #{SRCREPO} && darcs whatsnew -sl" to check.
-    end_msg
+      end_msg
+    end
+  else
+    puts "Warning: source repo is not local, so we can't compare final git state with latest darcs contents."
   end
 end
