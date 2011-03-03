@@ -28,6 +28,7 @@ require 'yaml'
 require 'pathname'
 require 'iconv'
 require 'shellwords'
+require 'fileutils'
 
 # Explicitly setting a time zone would cause darcs to only output in
 # that timezone hence we couldn't get the actual patch TZ
@@ -455,7 +456,8 @@ unless File.directory?("_darcs")
   run(*darcs_init)
 
   run("git", "init")
-  File.open(".git/info/exclude", "a") { |f| f.write("_darcs\n.DS_Store\n") }
+  FileUtils.mkdir_p(".git/info")
+  File.open(".git/info/exclude", "a+") { |f| f.write("_darcs\n.DS_Store\n") }
 
   # Patterns to exclude
   git_borings = [] << '(^|/)\.git($|/)' << '(^|/)\.DS_Store$'
