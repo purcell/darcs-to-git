@@ -351,10 +351,11 @@ class DarcsPatch
     if is_tag
       run("git", "tag", "-a", "-f", "-m", git_commit_message, git_tag_name)
     else
-      if (new_files = git_new_files).any?
+      new_files, changed_files = git_ls_files
+      if new_files.any?
         run(*(["git", "add", "-f"] + new_files))
       end
-      if git_changed_files.any? || new_files.any?
+      if changed_files.any? || new_files.any?
         output_of("git", "commit", "-a", "-m", git_commit_message)
       end
       # get full id of last commit and associate it with the patch id
@@ -394,13 +395,14 @@ class DarcsPatch
                 offs < 0 ? "-" : "+", offs.abs/3600, offs.abs.modulo(3600)/60 )
   end
 
-  def git_ls_files(wanted)
-    output_of(*["git", "ls-files", "-t", "-o", "-m", "-d", "-z", "-X", ".git/info/exclude"]).scan(/(.?) (.*?)\0/m).map do |code, name|
-      name if wanted.include?(code)
-    end.compact
+  def git_ls_files
+    summary = output_of(*["git", "ls-files", "-t", "-o", "-m", "-d", "-z", "-X", ".git/info/exclude"])
+    new_files, changed_files = [%w(?), %w(R C)].map do |wanted|
+      summary.scan(/(.?) (.*?)\0/m).map do |code, name|
+        name if wanted.include?(code)
+      end.compact
+    end
   end
-  def git_new_files() git_ls_files(["?"]) end
-  def git_changed_files() git_ls_files(%w(? R C)) end
 end
 
 def extract_authors(patches)
