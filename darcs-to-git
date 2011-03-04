@@ -466,6 +466,7 @@ unless File.directory?("_darcs")
   if darcs2_repo?(SRCREPO)
     darcs_init << "--darcs-2"
   elsif DARCS_VERSION >= [2, 0, 0]
+    puts "Using legacy darcs inventory format to match upstream repo"
     darcs_init << "--old-fashioned-inventory"
   end
   run(*darcs_init)
