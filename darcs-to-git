@@ -458,8 +458,14 @@ ENV['GIT_PAGER'] = ENV['PAGER'] = "cat" # so that pager of git-log doesn't halt 
 unless File.directory?("_darcs")
   puts "Initialising the working area."
 
-  unless Dir.entries(Dir.pwd).size == 2
+  if Dir.entries(Dir.pwd).delete_if { |e| e == ".git" }.size != 2
     raise "Directory not empty. Aborting"
+  end
+  if File.directory?(".git")
+    puts "Detected pre-created git repository. If this is not an empty repo, you may encounter problems."
+  else
+    puts "Initializing git repo"
+    run("git", "init")
   end
 
   darcs_init = %w(darcs init)
@@ -471,7 +477,6 @@ unless File.directory?("_darcs")
   end
   run(*darcs_init)
 
-  run("git", "init")
   FileUtils.mkdir_p(".git/info")
   File.open(".git/info/exclude", "a+") { |f| f.write("_darcs\n.DS_Store\n") }
 
