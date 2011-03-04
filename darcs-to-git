@@ -438,7 +438,7 @@ def darcs2_repo?(repo)
       false
     end
   else
-    format_file = open(repo.scan(/^(.*?)\/?$/).flatten.first + "/_darcs/format") { |f| f.read }
+    format_file = open(repo.scan(/^(.*?)\/?$/).flatten.first + "/_darcs/format") { |f| f.read } rescue nil
     return format_file && (format_file =~ /darcs-2(?:\.|$)/)
   end
 end
