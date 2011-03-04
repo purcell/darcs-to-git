@@ -426,14 +426,15 @@ end
 DARCS_VERSION = output_of(*%w(darcs -v)).scan(/(\d+)\.(\d+)(?:\.(\d+))?/).flatten.map {|v| v.to_i}
 
 def darcs2_repo?(repo)
-  begin
-    return ! File.read(repo[/^(.*)\/?$/] + "/_darcs/format") =~ /darcs-1.x/
-  rescue
+  if File.exist?(repo) # Local repo
     begin
       output_of("darcs", "show", "repo", "--repo=#{repo}") =~ /Format:.*darcs-2/
     rescue # darcs1 does not have a "show" command, so we get an exception
       false
     end
+  else
+    format_file = File.read(repo.scan(/^(.*?)\/?$/).flatten.first + "/_darcs/format") rescue nil
+    return format_file && !(format_file =~ /darcs-1\./)
   end
 end
 
