@@ -46,7 +46,8 @@ OPTIONS = { :default_author => 'none',
             :default_email => 'none',
             :list_authors  => false,
             :author_map    => nil,
-            :verbose       => true,
+            :verbose       => false,
+            :quiet         => false,
             :do_checks     => true,
             :clean_commit_messages => false,
             :num_patches   => nil }
@@ -99,9 +100,13 @@ OPTIONS
     abort opts.to_s unless n >= 0
     OPTIONS[:num_patches] = n
   end
+  opts.on('--verbose',
+          "Show executed commands and other internal information") do |n|
+    OPTIONS[:verbose] = true
+  end
   opts.on('--no-verbose',
           "Don't show status update after every imported patch (bit faster) ") do |n|
-    OPTIONS[:verbose] = false
+    OPTIONS[:quiet] = true
   end
   opts.on('--no-checks',
           "Don't check repository consistency after every imported patch, only at start and finish of pull (faster) ") do |n|
@@ -141,7 +146,7 @@ end
 # Utilities
 # -------------------------------------------------------------------------------
 def run(*args)
-  puts "Running: #{args.inspect}"
+  puts "Running: #{args.inspect}" if OPTIONS[:verbose]
   system(*args) || raise("Failed to run: #{args.inspect}")
 end
 
@@ -151,7 +156,7 @@ def validate_utf8(s)
 end
 
 def output_of(*args)
-  puts "Running: #{args.inspect}"
+  puts "Running: #{args.inspect}" if OPTIONS[:verbose]
   output = IO.popen(args.map {|a| Shellwords.shellescape(a) }.join(' '), 'r') { |p| p.read }
   if $?.exitstatus == 0
     return validate_utf8(output)
@@ -310,13 +315,13 @@ class DarcsPatch
 
   def pull_and_apply
     puts "\n" + ("=" * 80)
-    puts "PATCH : #{name}"
+    puts "PATCH : #{name}"  ## "1 of 43"
     puts "DATE  : #{date}"
     puts "AUTHOR: #{author} => #{git_author_name} <#{git_author_email}>"
-    puts "=" * 80
+    puts "-" * 80
 
     pull
-    puts output_of("git", "status", "--short")
+    puts output_of("git", "status", "--short") unless OPTIONS[:quiet]
     commit_to_git_repo
   end
 
@@ -524,15 +529,13 @@ patches_to_pull = if OPTIONS[:num_patches]
                   end
 
 original_stdout = $stdout
-unless OPTIONS[:verbose]
+if OPTIONS[:quiet]
   # Capture all writes to stdout.
   $stdout = StringIO.new
 end
 
 patches_to_pull.each_with_index { |p, i|
-  if i % 10 == 0
-    original_stdout.puts "progress: #{i} / #{patches_to_pull.size}"
-  end
+  original_stdout.puts "\nImporting patch #{i+1} of #{patches_to_pull.size}:"
   p.pull_and_apply
 }
 
