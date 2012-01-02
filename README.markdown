@@ -61,3 +61,12 @@ after import using:
 
     $ git branch -m darcs_import
 
+`darcs-to-git` creates a full copy of the original repository in addition to the Git repository;
+this can lead to considerable space usage. You can save space by treating the copied Darcs
+repository [as a branch](http://wiki.darcs.net/BestPractices#how-to-create-a-branch) by
+running
+
+    $ darcs optimize --relink --sibling /old-repo/dir
+    
+inside the new repository.
+
