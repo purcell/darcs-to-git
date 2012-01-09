@@ -246,11 +246,10 @@ class CommitHistory
   end
 
   def find_git_commit(is_tag, git_tag_name, identifier)
+    @darcs_patches_in_git[identifier] ||
     if is_tag
       (output_of("git", "tag", "-l") rescue "").split(/\r?\n/).include?(git_tag_name) &&
         output_of("git", "rev-list", "--max-count=1", "tags/#{git_tag_name}").strip
-    else
-      @darcs_patches_in_git[identifier];
     end
   end
 
@@ -357,12 +356,24 @@ class DarcsPatch
     `darcs whatsnew -sl | egrep -v '^a (\./)?\.git(/|$)' | egrep -v '^a ./darcs_testing_for_nfs/$'` =~ /^(No changes!)?$/
   end
 
+  def latest_commit_id
+    git_repo_empty? ? 'NONE' : output_of("git", "rev-list", "-n1", "--no-color", "HEAD").scan(/^([a-z0-9]+)$/).flatten.first
+  end
+
+  def git_repo_empty?
+    output_of("git", "branch").strip == ''
+  end
+
   def commit_to_git_repo
     ENV['GIT_AUTHOR_NAME'] = ENV['GIT_COMMITTER_NAME'] = git_author_name
     ENV['GIT_AUTHOR_EMAIL'] = ENV['GIT_COMMITTER_EMAIL'] = git_author_email
     ENV['GIT_AUTHOR_DATE'] = ENV['GIT_COMMITTER_DATE'] = date
     if is_tag
-      run("git", "tag", "-a", "-f", "-m", git_commit_message, git_tag_name)
+      if git_repo_empty?
+        STDERR.write("Can't tag an empty git repo: skipping tag '#{git_tag_name}'\n")
+      else
+        run("git", "tag", "-a", "-f", "-m", git_commit_message, git_tag_name)
+      end
     else
       new_files, changed_files = git_ls_files
       if new_files.any?
@@ -371,10 +382,9 @@ class DarcsPatch
       if changed_files.any? || new_files.any?
         output_of("git", "commit", "-a", "-m", git_commit_message)
       end
-      # get full id of last commit and associate it with the patch id
-      commit_id = output_of("git", "log", "-n1", "--no-color").scan(/^commit ([a-z0-9]+$)/).flatten.first
-      COMMIT_HISTORY.record_git_commit(commit_id, identifier)
     end
+    # get full id of last commit and associate it with the patch id
+    COMMIT_HISTORY.record_git_commit(latest_commit_id, identifier)
   end
 
   def darcs_date_to_git_date(utc,local)
