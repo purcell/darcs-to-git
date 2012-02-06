@@ -293,7 +293,7 @@ class DarcsPatch
 
   def safe_patch_name(darcs_name)
     # See 'man git-check-ref-format'
-    darcs_name.gsub(/(?:[\s:*]+|\.{2,}|\#\{|^\.|\.$)/, '_')
+    darcs_name.gsub(/\/+/, '/').gsub(/(?:[\s~\^\\:*\?\[]+|\.{2,}|\#\{|^\.|\.$|^\/|\/$|[^\040-\177])/, '_').gsub(/_+/, '_')
   end
 
   def <=>(other)
