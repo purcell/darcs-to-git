@@ -491,7 +491,11 @@ unless File.directory?("_darcs")
     darcs_init << "--darcs-2"
   elsif DARCS_VERSION >= [2, 0, 0]
     puts "Using legacy darcs inventory format to match upstream repo"
-    darcs_init << "--old-fashioned-inventory"
+    if DARCS_VERSION >= [2, 8, 1]
+      darcs_init << "--hashed"
+    else
+      darcs_init << "--old-fashioned-inventory"
+    end
   end
   run(*darcs_init)
 
