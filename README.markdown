@@ -1,13 +1,16 @@
 darcs-to-git
-    written by Steve Purcell, some improvements by Thomas Schilling,
-    Jonathon Mah
+============
 
 Converts a Darcs repository into a Git repository.  Supports
 incremental updates, i.e., you can pull new patches from the source
 repository or import a large repository in steps.
 
-USAGE
-=====
+An alternative and similar tool is
+[darcs-fastconvert](http://wiki.darcs.net/DarcsBridgeUsage), which may
+or may not suit your needs better.
+
+Usage
+-----
 
 (Use `darcs-to-git --help` to display the latest usage instructions.)
 
@@ -25,7 +28,7 @@ Options
 -------
 
  * `--patches N`: only import `N` patches.
- 
+
  * `--email-address ADDRESS`: `darcs-to-git` tries to reconstruct the
    email address from the darcs patch.  In cases this is not possible,
    a default will be picked by Git.  This is usually the one in
@@ -36,11 +39,13 @@ Options
    repository and how they will appear in the git repository and
    quits.  The output will be lines like this:
 
-    Jane@example.com: Jane <Jane@example.com>
+   ```
+   Jane@example.com: Jane <Jane@example.com>
+   ```
 
-   This means that the darcs author "Jane@example.com" will be
-   translated to git-author "Jane" with email address
-   "Jane@example.com".  You can use the output of this command as a
+   This means that the darcs author `Jane@example.com` will be
+   translated to git-author `Jane` with email address
+   `Jane@example.com`.  You can use the output of this command as a
    starting point for the input for `--author-map`.
 
  * `--author-map FILENAME`: Allows translations from darcs committer
@@ -49,12 +54,12 @@ Options
    stored in the repository and will be re-used for future imports.
 
 
-KNOWN ISSUES
+Known issues
 ------------
 
 When `darcs-to-git` pulls a conflicting patch it will revert the state
-of the repository to the state before the conflict. *THIS WILL ALSO
-REMOVE ANY LOCAL CHANGES TO YOUR REPOSITORY, INCLUDING GIT COMMITS!*
+of the repository to the state before the conflict. **This will also
+remove any local changes to your repository, including git commits!**
 You should therefore not commit to the branch you import to, but
 instead work in a different branch.  You can rename your master branch
 after import using:
@@ -67,8 +72,14 @@ repository [as a branch](http://wiki.darcs.net/BestPractices#how-to-create-a-bra
 running
 
     $ darcs optimize --relink --sibling /old-repo/dir
-    
+
 inside the new repository.
+
+Acknowledgements
+----------------
+
+Written and maintained by Steve Purcell, with some improvements by
+Thomas Schilling, Jonathon Mah and others.
 
 
 <hr>
