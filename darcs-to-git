@@ -29,7 +29,7 @@ require 'rexml/document'
 require 'optparse'
 require 'yaml'
 require 'pathname'
-require 'iconv'
+require 'iconv' if RUBY_VERSION < "2.0.0"
 require 'shellwords'
 require 'fileutils'
 require 'open-uri'
@@ -155,7 +155,13 @@ end
 
 # cf. Paul Battley, http://po-ru.com/diary/fixing-invalid-utf-8-in-ruby-revisited/
 def validate_utf8(s)
-  return Iconv.iconv('UTF-8//IGNORE', 'UTF-8', (s + ' ') ).first[0..-2]
+  if defined? Iconv
+    Iconv.iconv('UTF-8//IGNORE', 'UTF-8', (s + ' ') ).first[0..-2]
+  else
+    # Force conversion and sanitization by encoding to UTF-16, then back to UTF-8
+    s.dup.encode('UTF-16BE', :invalid => :replace, :undef => :replace, :replace => "").
+      encode('UTF-8', :invalid => :replace, :undef => :replace, :replace => "")
+  end
 end
 
 def output_of(*args)
