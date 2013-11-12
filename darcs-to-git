@@ -54,7 +54,7 @@ OPTIONS = { :default_author => 'none',
             :do_checks     => true,
             :clean_commit_messages => false,
             :num_patches   => nil }
-opts = OptionParser.new do |opts|
+options = OptionParser.new do |opts|
   opts.banner = <<-end_usage
 Creates git repositories from darcs repositories
 
@@ -137,11 +137,11 @@ EOF
     exit
   end
 end
-opts.parse!
+options.parse!
 
 SRCREPO = ARGV[0]
 if SRCREPO.nil?
-  abort opts.to_s
+  abort options.to_s
 end
 
 
