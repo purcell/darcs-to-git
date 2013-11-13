@@ -402,14 +402,19 @@ class DarcsPatch
     # aren't well-defined, so we ignore the timezone name and instead
     # calculate the timezone offset ourselves by calculating the
     # difference between local time and UTC time.
-    if not utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/
-      raise "Wrong darcs date format"
-    end
-    utc_time = Time.utc($1,$2,$3,$4,$5,$6)
+
     # example: Mon Oct  2 14:23:28 CEST 2006
+    pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/
+    # UTC time may be in the format 20121131154505, or in the regular pattern above
+    utc_time = if utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/
+                 Time.utc($1,$2,$3,$4,$5,$6)
+               elsif utc =~ pat
+                 Time.utc($6,$1,$2,$3,$4,$5)
+               else
+                 raise "Wrong darcs date format: #{utc.inspect}"
+               end
     # everything except timezone name is fixed-length, if parsing
     # fails we just use UTC
-    pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/
     local_time = if pat =~ local
                    Time.utc($6,$1,$2,$3,$4,$5)
                  else
