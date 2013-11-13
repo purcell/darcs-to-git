@@ -423,10 +423,10 @@ class DarcsPatch
     offs = local_time - utc_time # time offset in seconds
     t = local_time
     # formats the above example as: 2006-10-02 14:23:28 +0200
-    s = sprintf("%4d-%02d-%02d %02d:%02d:%02d %s%02d%02d",
-                t.year, t.month, t.day,
-                t.hour, t.min, t.sec,
-                offs < 0 ? "-" : "+", offs.abs/3600, offs.abs.modulo(3600)/60 )
+    sprintf("%4d-%02d-%02d %02d:%02d:%02d %s%02d%02d",
+            t.year, t.month, t.day,
+            t.hour, t.min, t.sec,
+            offs < 0 ? "-" : "+", offs.abs/3600, offs.abs.modulo(3600)/60 )
   end
 
   def git_ls_files
