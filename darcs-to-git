@@ -24,6 +24,11 @@
 # TODO: use default repo if none was supplied
 # TODO: handle *-darcs-backupN files?
 
+unless RUBY_VERSION >= "1.9"
+  STDERR.printf("Ruby >= 1.9 is required. You have %s\n", RUBY_VERSION)
+  exit 1
+end
+
 require 'ostruct'
 require 'rexml/document'
 require 'optparse'
