@@ -24,9 +24,15 @@
 # TODO: use default repo if none was supplied
 # TODO: handle *-darcs-backupN files?
 
-unless RUBY_VERSION >= "1.9"
-  STDERR.printf("Ruby >= 1.9 is required. You have %s\n", RUBY_VERSION)
-  exit 1
+if RUBY_VERSION >= "1.9"
+  require 'shellwords'
+else
+  module Shellwords
+    def self.shellescape(str)
+      return "''" if str.empty?
+      str.gsub(/([^A-Za-z0-9_\-.,:\/@\n])/n, "\\\\\\1").gsub(/\n/, "'\n'")
+    end
+  end
 end
 
 require 'ostruct'
@@ -35,7 +41,6 @@ require 'optparse'
 require 'yaml'
 require 'pathname'
 require 'iconv' if RUBY_VERSION < "2.0.0"
-require 'shellwords'
 require 'fileutils'
 require 'open-uri'
 
