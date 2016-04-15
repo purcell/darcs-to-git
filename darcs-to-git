@@ -414,7 +414,7 @@ class DarcsPatch
     # difference between local time and UTC time.
 
     # example: Mon Oct  2 14:23:28 CEST 2006
-    pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) \w* (\d\d\d\d)/
+    pat = /^\w\w\w (\w\w\w) ([ 1-9]\d) ([ 0-9]\d)\:(\d\d)\:(\d\d) [\w ]*? (\d\d\d\d)/
     # UTC time may be in the format 20121131154505, or in the regular pattern above
     utc_time = if utc =~ /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/
                  Time.utc($1,$2,$3,$4,$5,$6)
