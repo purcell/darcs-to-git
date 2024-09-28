@@ -5,10 +5,6 @@ Converts a Darcs repository into a Git repository.  Supports
 incremental updates, i.e., you can pull new patches from the source
 repository or import a large repository in steps.
 
-An alternative and similar tool is
-[darcs-fastconvert](http://wiki.darcs.net/DarcsBridgeUsage), which may
-or may not suit your needs better.
-
 Usage
 -----
 
